@@ -1,0 +1,43 @@
+import Database from 'better-sqlite3';
+import path from 'path';
+import fs from 'fs';
+
+const DATA_DIR = process.env.DATA_DIR ?? path.join(process.cwd(), 'data');
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+
+const DB_PATH = path.join(DATA_DIR, 'zeiterfassung.db');
+
+let _db: Database.Database | null = null;
+
+export function getDb(): Database.Database {
+  if (_db) return _db;
+  _db = new Database(DB_PATH);
+  _db.pragma('journal_mode = WAL');
+  _db.pragma('foreign_keys = ON');
+  initSchema(_db);
+  return _db;
+}
+
+function initSchema(db: Database.Database) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS time_entries (
+      id TEXT PRIMARY KEY,
+      date TEXT NOT NULL,
+      start_time TEXT NOT NULL,
+      end_time TEXT,
+      break_minutes INTEGER NOT NULL DEFAULT 0,
+      work_type TEXT NOT NULL DEFAULT 'homeoffice',
+      day_type TEXT NOT NULL DEFAULT 'workday',
+      note TEXT DEFAULT '',
+      distance_km REAL,
+      start_lat REAL,
+      start_lng REAL,
+      end_lat REAL,
+      end_lng REAL,
+      is_synced INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_entries_date ON time_entries(date);
+  `);
+}
