@@ -1,0 +1,18 @@
+{
+  "name": "gartenmeister-weather-service",
+  "version": "1.0.0",
+  "description": "Standalone Weather Data Collection Service for GartenMeister",
+  "main": "weather-service-standalone.js",
+  "scripts": {
+    "start": "node weather-service-standalone.js",
+    "install-service": "node install-service.js",
+    "test": "node test-weather-service.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "node-cron": "^3.0.3"
+  },
+  "keywords": ["gartenmeister", "weather", "nas", "synology"],
+  "author": "GartenMeister",
+  "license": "MIT"
+}

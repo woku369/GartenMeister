@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🌱 Daten-Verifikation nach Migration</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .data-box { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌱 GartenMeister - Datenverifikation nach Migration</h1>
+        <div id="results"></div>
+        
+        <script>
+        async function verifyMigratedData() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p class="info">🔍 Starte Datenverifikation...</p>';
+            
+            // Test 1: Check Electron context
+            const hasElectron = typeof window !== 'undefined' && window.electronAPI;
+            resultsDiv.innerHTML += `<p class="${hasElectron ? 'success' : 'error'}">📱 Electron Context: ${hasElectron ? '✅ Available' : '❌ Not found'}</p>`;
+            
+            if (hasElectron) {
+                // Test IPC APIs
+                resultsDiv.innerHTML += `<p class="info">🚀 Available IPC APIs: ${Object.keys(window.electronAPI).join(', ')}</p>`;
+                
+                try {
+                    // Test Beete laden
+                    resultsDiv.innerHTML += '<p class="info">🌱 Teste Beete über IPC...</p>';
+                    const beds = await window.electronAPI.beds.getAll();
+                    resultsDiv.innerHTML += `<p class="success">✅ ${beds?.length || 0} Beete über IPC geladen</p>`;
+                    
+                    if (beds && beds.length > 0) {
+                        resultsDiv.innerHTML += '<div class="data-box">';
+                        resultsDiv.innerHTML += '<h3>📊 Beete-Übersicht:</h3>';
+                        beds.slice(0, 5).forEach(bed => {
+                            resultsDiv.innerHTML += `<p>• Beet ${bed.bedNumber}: ${bed.type} (${bed.width}m breit)</p>`;
+                        });
+                        if (beds.length > 5) {
+                            resultsDiv.innerHTML += `<p><em>... und ${beds.length - 5} weitere Beete</em></p>`;
+                        }
+                        resultsDiv.innerHTML += '</div>';
+                    }
+                    
+                    // Test Kräuterarten laden
+                    resultsDiv.innerHTML += '<p class="info">🌿 Teste Kräuterarten über IPC...</p>';
+                    const herbs = await window.electronAPI.herbs.getAll();
+                    resultsDiv.innerHTML += `<p class="success">✅ ${herbs?.length || 0} Kräuterarten über IPC geladen</p>`;
+                    
+                    if (herbs && herbs.length > 0) {
+                        resultsDiv.innerHTML += '<div class="data-box">';
+                        resultsDiv.innerHTML += '<h3>🌿 Kräuterarten-Übersicht:</h3>';
+                        herbs.forEach(herb => {
+                            resultsDiv.innerHTML += `<p>• ${herb.name}: ${herb.scientificName || 'N/A'}</p>`;
+                        });
+                        resultsDiv.innerHTML += '</div>';
+                    }
+                    
+                    // Test System-Daten
+                    if (window.electronAPI.system) {
+                        resultsDiv.innerHTML += '<p class="info">⚙️ Teste System-Konfiguration über IPC...</p>';
+                        const config = await window.electronAPI.system.getConfiguration();
+                        resultsDiv.innerHTML += `<p class="success">✅ System-Konfiguration geladen</p>`;
+                        
+                        if (config) {
+                            resultsDiv.innerHTML += '<div class="data-box">';
+                            resultsDiv.innerHTML += '<h3>⚙️ System-Konfiguration:</h3>';
+                            resultsDiv.innerHTML += `<p>• Aktuelle Beetanzahl: ${config.currentBeetCount || 'N/A'}</p>`;
+                            resultsDiv.innerHTML += '</div>';
+                        }
+                    }
+                    
+                    resultsDiv.innerHTML += '<p class="success">🎉 IPC-Datenverifikation erfolgreich abgeschlossen!</p>';
+                    
+                } catch (error) {
+                    resultsDiv.innerHTML += `<p class="error">❌ IPC-Test fehlgeschlagen: ${error.message}</p>`;
+                }
+                
+            } else {
+                // HTTP Fallback Test
+                resultsDiv.innerHTML += '<p class="info">🌐 Teste HTTP-Fallback...</p>';
+                
+                try {
+                    const response = await fetch('/api/beds');
+                    const beds = await response.json();
+                    resultsDiv.innerHTML += `<p class="success">✅ ${beds?.length || 0} Beete über HTTP geladen</p>`;
+                    
+                    if (beds && beds.length > 0) {
+                        resultsDiv.innerHTML += '<div class="data-box">';
+                        resultsDiv.innerHTML += '<h3>📊 Beete-Übersicht (HTTP):</h3>';
+                        beds.slice(0, 3).forEach(bed => {
+                            resultsDiv.innerHTML += `<p>• Beet ${bed.bedNumber}: ${bed.type}</p>`;
+                        });
+                        resultsDiv.innerHTML += '</div>';
+                    }
+                } catch (error) {
+                    resultsDiv.innerHTML += `<p class="error">❌ HTTP-Test fehlgeschlagen: ${error.message}</p>`;
+                }
+            }
+        }
+        
+        // Auto-start verification
+        verifyMigratedData();
+        </script>
+    </div>
+</body>
+</html>

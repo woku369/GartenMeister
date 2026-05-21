@@ -1,0 +1,39 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="GartenMeister Icon">
+  <defs>
+    <style>
+      @font-face {
+        font-family: 'EskapadeFraktur';
+        src: url('../../fonts/EskapadeFraktur-Regular.ttf') format('truetype');
+      }
+    </style>
+    <linearGradient id="base" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%"   stop-color="#202020"/>
+      <stop offset="100%" stop-color="#060606"/>
+    </linearGradient>
+    <radialGradient id="gloss" cx="38%" cy="22%" r="62%" fx="38%" fy="22%">
+      <stop offset="0%"   stop-color="#FFFFFF" stop-opacity="0.42"/>
+      <stop offset="38%"  stop-color="#FFFFFF" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.00"/>
+    </radialGradient>
+    <linearGradient id="rim" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#FFFFFF" stop-opacity="0.28"/>
+      <stop offset="50%"  stop-color="#FFFFFF" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.03"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#FFFFFF" stop-opacity="0.00"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.07"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" ry="112" fill="url(#base)"/>
+  <rect width="512" height="512" rx="112" ry="112" fill="url(#floor)"/>
+  <rect width="512" height="512" rx="112" ry="112" fill="none" stroke="url(#rim)" stroke-width="2.5"/>
+  <text font-family="EskapadeFraktur, UnifrakturMaguntia, serif"
+        font-size="248" text-anchor="middle" dominant-baseline="central"
+        x="256" y="272">
+    <tspan fill="#FFFFFF" fill-opacity="0.93">G</tspan><tspan fill="#9BA97E">M</tspan>
+  </text>
+  <rect width="512" height="512" rx="112" ry="112" fill="url(#gloss)"/>
+  <rect x="1" y="1" width="510" height="510" rx="111" ry="111" fill="none"
+        stroke="#FFFFFF" stroke-opacity="0.10" stroke-width="1.5"/>
+</svg>

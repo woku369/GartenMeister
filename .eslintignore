@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+.next/
+out/
+dist/
+build/
+.turbo/
+
+# Testing and coverage
+coverage/
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
+.cache/
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode-test/
+.vscode/
+
+# Project specific
+GartenMeister-Portable-Direct/
+scripts/
+docs/
+
+# Documentation and text files
+*.md
+*.txt
+*.bat
+*.ps1
+*.yaml
+*.yml
+
+# Build artifacts
+*.tsbuildinfo
+next-env.d.ts
+
+# Generated files
+src/vfs_fonts.js
+src/advanced-pdf-generator.js
+src/simple-pdf-generator*.js
+
+# Config files
+*.config.js
+*.config.mjs
+*.config.ts
+forge.config.js
+electron-builder.config.js
+tailwind.config.ts
+postcss.config.mjs
+next.config.ts

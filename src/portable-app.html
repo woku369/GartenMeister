@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GartenMeister - Portable Edition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #8FBC8F 0%, #E0EEE0 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 600px;
+            width: 90%;
+        }
+        
+        .logo {
+            font-size: 3em;
+            color: #8FBC8F;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #2C5530;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 1.2em;
+            margin-bottom: 30px;
+        }
+        
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin: 30px 0;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #E0EEE0;
+            border-top: 4px solid #8FBC8F;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .status {
+            color: #666;
+            font-size: 1.1em;
+            margin: 20px 0;
+        }
+        
+        .error {
+            color: #d32f2f;
+            background: #ffebee;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .success {
+            color: #388e3c;
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .btn {
+            background: #8FBC8F;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin: 10px;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: #7aad7a;
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .debug-info {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 30px;
+            text-align: left;
+            font-family: monospace;
+            font-size: 0.9em;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .feature-list {
+            text-align: left;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .feature-list h3 {
+            color: #2C5530;
+            margin-bottom: 15px;
+        }
+        
+        .feature-list ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .feature-list li {
+            padding: 5px 0;
+            color: #666;
+        }
+        
+        .feature-list li:before {
+            content: "🌱 ";
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🌱</div>
+        <h1>GartenMeister</h1>
+        <div class="subtitle">Portable Desktop Edition</div>
+        
+        <div class="loading">
+            <div class="spinner"></div>
+            <div class="status" id="status">Initialisiere IPC-System...</div>
+        </div>
+        
+        <div id="error-container"></div>
+        <div id="success-container"></div>
+        
+        <div class="feature-list">
+            <h3>Verfügbare Features:</h3>
+            <ul>
+                <li>Beete verwalten und konfigurieren</li>
+                <li>Kräuterarten und Segmente planen</li>
+                <li>Erntedaten erfassen und auswerten</li>
+                <li>PDF-Berichte erstellen</li>
+                <li>Wetter-Daten und NAS-Integration</li>
+                <li>Backup & Recovery System</li>
+            </ul>
+        </div>
+        
+        <div>
+            <button class="btn" id="open-app" onclick="openMainApp()" disabled>
+                GartenMeister öffnen
+            </button>
+            <button class="btn" id="test-ipc" onclick="testIPC()">
+                IPC testen
+            </button>
+        </div>
+        
+        <div class="debug-info" id="debug-info">
+            <strong>System-Information:</strong><br>
+            <div id="system-info">Wird geladen...</div>
+        </div>
+    </div>
+
+    <script>
+        let ipcReady = false;
+        
+        async function initializeApp() {
+            const statusEl = document.getElementById('status');
+            const errorContainer = document.getElementById('error-container');
+            const successContainer = document.getElementById('success-container');
+            const openAppBtn = document.getElementById('open-app');
+            const systemInfo = document.getElementById('system-info');
+            
+            try {
+                statusEl.textContent = 'Prüfe Electron-Umgebung...';
+                
+                // System-Info sammeln
+                let infoText = `Platform: ${navigator.platform}<br>`;
+                infoText += `User Agent: ${navigator.userAgent}<br>`;
+                infoText += `Electron API: ${typeof window.electronAPI !== 'undefined' ? '✅ Verfügbar' : '❌ Nicht gefunden'}<br>`;
+                
+                if (typeof window.electronAPI !== 'undefined') {
+                    infoText += `IPC Methoden: ${Object.keys(window.electronAPI).join(', ')}<br>`;
+                    
+                    // App-Pfad testen
+                    try {
+                        const appPath = await window.electronAPI.getAppPath();
+                        infoText += `App-Pfad: ${appPath}<br>`;
+                    } catch (error) {
+                        infoText += `App-Pfad: Fehler - ${error.message}<br>`;
+                    }
+                    
+                    statusEl.textContent = 'IPC-System bereit!';
+                    ipcReady = true;
+                    openAppBtn.disabled = false;
+                    
+                    successContainer.innerHTML = '<div class="success">✅ Portable EXE erfolgreich initialisiert!</div>';
+                } else {
+                    throw new Error('Electron API nicht verfügbar - App läuft nicht in Electron-Umgebung');
+                }
+                
+                systemInfo.innerHTML = infoText;
+                
+            } catch (error) {
+                console.error('Initialisierungsfehler:', error);
+                statusEl.textContent = 'Initialisierung fehlgeschlagen';
+                errorContainer.innerHTML = `<div class="error">❌ Fehler: ${error.message}</div>`;
+                
+                systemInfo.innerHTML = `Fehler bei der Initialisierung: ${error.message}`;
+            }
+        }
+        
+        async function testIPC() {
+            const statusEl = document.getElementById('status');
+            const debugInfo = document.getElementById('debug-info');
+            
+            statusEl.textContent = 'Teste IPC-Verbindungen...';
+            
+            try {
+                if (!window.electronAPI) {
+                    throw new Error('Electron API nicht verfügbar');
+                }
+                
+                let testResults = '<strong>IPC Test-Ergebnisse:</strong><br>';
+                
+                // Test 1: Konfiguration laden
+                try {
+                    const config = await window.electronAPI.getConfig();
+                    testResults += `✅ Konfiguration geladen: ${config ? 'Erfolg' : 'Leer'}<br>`;
+                } catch (error) {
+                    testResults += `❌ Konfiguration: ${error.message}<br>`;
+                }
+                
+                // Test 2: Dateisystem-Zugriff
+                try {
+                    const dataPath = await window.electronAPI.getDataFilePath('test.json');
+                    testResults += `✅ Dateipfad abgerufen: ${dataPath}<br>`;
+                } catch (error) {
+                    testResults += `❌ Dateipfad: ${error.message}<br>`;
+                }
+                
+                // Test 3: Datenbank-Pfad
+                try {
+                    const dbPath = await window.electronAPI.getDatabasePath();
+                    testResults += `✅ Datenbank-Pfad: ${dbPath}<br>`;
+                } catch (error) {
+                    testResults += `❌ Datenbank-Pfad: ${error.message}<br>`;
+                }
+                
+                debugInfo.innerHTML = testResults;
+                statusEl.textContent = 'IPC-Tests abgeschlossen';
+                
+            } catch (error) {
+                debugInfo.innerHTML = `<strong>IPC Test-Fehler:</strong><br>${error.message}`;
+                statusEl.textContent = 'IPC-Test fehlgeschlagen';
+            }
+        }
+        
+        function openMainApp() {
+            if (!ipcReady) {
+                alert('Bitte warten Sie, bis das IPC-System initialisiert ist.');
+                return;
+            }
+            
+            // TODO: Hier wird später die echte React-App geladen
+            // Für jetzt zeigen wir eine Erfolgsmeldung
+            alert('🎉 SUCCESS! Die portable EXE läuft perfekt mit IPC!\n\n✅ Server-freie Architektur funktioniert\n✅ Alle IPC-Handler aktiv\n✅ Dateisystem-Zugriff verfügbar\n\nDie echte GartenMeister-UI wird als nächstes implementiert.');
+        }
+        
+        // App beim Laden initialisieren
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>

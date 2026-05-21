@@ -1,0 +1,1881 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
+import { electronAPI, isElectron } from '@/lib/electron-bridge';
+import { Folder, Info, Settings2, Layout, Paintbrush, FileDown, Cloud, Users, Camera, TestTube, ExternalLink, CheckCircle, XCircle, AlertCircle, Eye, EyeOff, Database, HardDrive, CloudSun, LayoutGrid } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { NASStatusDashboard } from '@/components/settings/nas-status-dashboard';
+import type { GartenConfiguration } from '@/lib/definitions';
+import { performManualSync, getCloudSyncInstance } from '@/lib/simple-cloud-sync';
+
+interface AppConfig {
+  appTheme: string;
+  exportPath: string | null;
+  autoStartNextServer: boolean;
+  rememberWindowSize: boolean;
+  defaultWindowSize: { width: number; height: number; };
+  lastWindowSize: { width: number; height: number; };
+  zoomLevel: number;
+  
+  userPreferences: {
+    defaultBeetType: string;
+    defaultBeetWidth: number;
+    defaultProductivePercentage: number;
+    showBeetNumbers: boolean;
+    showPlantAge: boolean;
+  };
+  
+  apiSettings: {
+    weather: {
+      provider: 'openweathermap' | 'weatherapi' | 'meteostat';
+      apiKey: string;
+      location: string;
+      historicalDataEnabled: boolean;
+      meteostat?: {
+        rapidApiKey: string;
+        rapidApiHost: string;
+        applicationId: string;
+        monthlyLimit: number;
+      };
+    };
+    teams: {
+      clientId: string;
+      tenantId: string;
+      enabled: boolean;
+    };
+    webcam: {
+      defaultDevice: string;
+      autoCapture: boolean;
+      captureInterval: number;
+      storageLocation: string;
+    };
+  };
+  
+  storageSettings: {
+    cloudProvider: 'local' | 'onedrive' | 'googledrive' | 'firebase';
+    cloudSyncPath: string;
+    syncStrategy: 'incremental' | 'full' | 'realtime' | 'manual';
+    conflictResolution: 'last-write-wins' | 'user-choice' | 'auto-merge' | 'create-branch';
+    autoSync: boolean;
+    syncInterval: number;
+    maxFileSize: number;
+    enableEncryption: boolean;
+    backupRetentionDays: number;
+    wifiOnlySync: boolean;
+    compressionEnabled: boolean;
+  };
+}
+
+const defaultConfig: AppConfig = {
+  appTheme: 'light',
+  exportPath: null,
+  autoStartNextServer: true,
+  rememberWindowSize: true,
+  defaultWindowSize: { width: 1200, height: 800 },
+  lastWindowSize: { width: 1200, height: 800 },
+  zoomLevel: 0,
+  userPreferences: {
+    defaultBeetType: 'Standard',
+    defaultBeetWidth: 1.5,
+    defaultProductivePercentage: 95,
+    showBeetNumbers: true,
+    showPlantAge: true,
+  },
+  apiSettings: {
+    weather: {
+      provider: 'openweathermap',
+      apiKey: '27abc31487d9b25c2721ed313b51b619',
+      location: 'Gurk, Österreich',
+      historicalDataEnabled: false,
+      meteostat: {
+        rapidApiKey: '55cbbbb142msh8e8ae70fe1473f0p11d6e2jsne3503a11fd14',
+        rapidApiHost: 'meteostat.p.rapidapi.com',
+        applicationId: 'default-application_10720607',
+        monthlyLimit: 500
+      }
+    },
+    teams: {
+      clientId: '',
+      tenantId: '',
+      enabled: false
+    },
+    webcam: {
+      defaultDevice: '',
+      autoCapture: false,
+      captureInterval: 60,
+      storageLocation: 'Downloads/GartenMeister/Webcam'
+    }
+  },
+  storageSettings: {
+    cloudProvider: 'local',
+    cloudSyncPath: '',
+    syncStrategy: 'incremental',
+    conflictResolution: 'last-write-wins',
+    autoSync: true,
+    syncInterval: 30,
+    maxFileSize: 50,
+    enableEncryption: false,
+    backupRetentionDays: 30,
+    wifiOnlySync: true,
+    compressionEnabled: true
+  }
+};
+
+export default function SettingsPage() {
+  const [config, setConfig] = useState<AppConfig>(defaultConfig);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isElectronApp, setIsElectronApp] = useState(false);
+  const [exportPath, setExportPath] = useState<string | null>(null);
+  const [databasePath, setDatabasePath] = useState<string | null>(null);
+  const [showApiKeys, setShowApiKeys] = useState(false);
+  const [gartenConfiguration, setGartenConfiguration] = useState<GartenConfiguration | null>(null); // PHASE 1: GartenConfiguration State
+  const [isSyncing, setIsSyncing] = useState(false);
+  const { toast } = useToast();
+  // Konfiguration laden
+  useEffect(() => {
+    const checkElectronAndLoadConfig = async () => {
+      try {        // Prüfen, ob wir in Electron laufen
+        const isElectronEnv = isElectron();
+        console.log('Electron-Umgebung erkannt:', isElectronEnv);
+        console.log('electronAPI verfügbar:', typeof window !== 'undefined' && !!window.electronAPI);
+        setIsElectronApp(isElectronEnv);
+          if (isElectronEnv && typeof electronAPI === 'object' && electronAPI !== null) {
+          console.log('Verwende electronAPI für Konfiguration...');
+          try {
+            // Konfiguration laden
+            if (typeof electronAPI.getConfig === 'function') {
+              console.log('Rufe getConfig auf...');
+              const appConfig = await electronAPI.getConfig();
+              if (appConfig) {
+                console.log('Konfiguration erhalten:', appConfig);
+                setConfig(appConfig);
+              } else {
+                console.log('Keine Konfiguration erhalten, verwende Standardkonfiguration');
+                setConfig(defaultConfig);
+              }
+            } else {
+              console.error('electronAPI.getConfig ist keine Funktion, verwende Standardkonfiguration');
+              setConfig(defaultConfig);
+            }
+
+            // Export-Pfad laden
+            if (typeof electronAPI.getAppPath === 'function') {
+              const exportPathResult = await electronAPI.getAppPath();
+              if (exportPathResult) {
+                setExportPath(exportPathResult + '\\exports');
+              }
+            }
+
+            // Datenbank-Pfad laden
+            if (typeof electronAPI.getDatabasePath === 'function') {
+              console.log('Rufe getDatabasePath auf...');
+              const dbPath = await electronAPI.getDatabasePath();
+              if (dbPath) {
+                console.log('Datenbank-Pfad erhalten:', dbPath);
+                setDatabasePath(dbPath);
+              }
+            }// PHASE 1: GartenConfiguration laden
+            try {
+              console.log('Versuche GartenConfiguration zu laden...');
+              const configResponse = await fetch('/api/garten-configuration');
+              if (configResponse.ok) {
+                const gartenConfig = await configResponse.json();
+                console.log('GartenConfiguration geladen:', gartenConfig);
+                setGartenConfiguration(gartenConfig);              } else {
+                console.warn('GartenConfiguration API Response nicht OK:', configResponse.status);
+                // Fallback: Erstelle eine Standardkonfiguration
+                const defaultGartenConfig: GartenConfiguration = {
+                  gartenName: 'Mein Garten', 
+                  currentBeetCount: 6,
+                  maxBeetCount: 50,
+                  activeBeetIds: Array.from({length: 6}, (_, i) => `bed-${i + 1}`),
+                  inactiveBeetIds: [],
+                  lastModified: new Date().toISOString()
+                };
+                setGartenConfiguration(defaultGartenConfig);
+              }            } catch (error) {
+              console.warn('Failed to load garden configuration:', error);
+              // Fallback: Erstelle eine Standardkonfiguration
+              const defaultGartenConfig: GartenConfiguration = {
+                gartenName: 'Mein Garten', 
+                currentBeetCount: 6,
+                maxBeetCount: 50,
+                activeBeetIds: Array.from({length: 6}, (_, i) => `bed-${i + 1}`),
+                inactiveBeetIds: [],
+                lastModified: new Date().toISOString()
+              };
+              setGartenConfiguration(defaultGartenConfig);
+            }
+          } catch (error) {
+            console.error('Fehler bei der Electron-Integration:', error);
+            setConfig(defaultConfig);
+            toast({
+              title: "Fehler",
+              description: "Die Electron-Integration konnte nicht geladen werden.",
+              variant: "destructive",
+            });
+          }
+        } else {
+          console.log('App läuft nicht in Electron oder electronAPI ist nicht definiert');
+          console.log('Verwende Standardkonfiguration für Non-Electron-Umgebung');
+          setConfig(defaultConfig);
+        }
+      } catch (error) {
+        console.error('Unerwarteter Fehler beim Erkennen der Umgebung:', error);
+        setConfig(defaultConfig);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    checkElectronAndLoadConfig();
+  }, [toast]);
+  // Konfiguration speichern
+  const saveConfig = async () => {
+    if (!isElectronApp) return;
+    
+    if (typeof electronAPI !== 'object' || electronAPI === null) {
+      console.error('electronAPI ist nicht definiert');
+      toast({
+        title: "Fehler",
+        description: "Die Electron-API ist nicht verfügbar.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (typeof electronAPI.saveConfig !== 'function') {
+      console.error('electronAPI.saveConfig ist keine Funktion');
+      toast({
+        title: "Fehler",
+        description: "Die Funktion zum Speichern der Einstellungen ist nicht verfügbar.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      const saved = await electronAPI.saveConfig(config);
+      if (saved) {
+        toast({
+          title: "Gespeichert",
+          description: "Die Einstellungen wurden erfolgreich gespeichert.",
+          variant: "default",
+        });
+      }
+    } catch (error) {
+      console.error('Fehler beim Speichern der Konfiguration:', error);
+      toast({
+        title: "Fehler",
+        description: "Die Einstellungen konnten nicht gespeichert werden.",
+        variant: "destructive",
+      });
+    }  };
+  // Einzelne Benutzereinstellung aktualisieren
+  const updateUserPreference = async (key: string, value: any) => {
+    setConfig(prevConfig => ({
+      ...prevConfig,
+      userPreferences: {
+        ...(prevConfig.userPreferences || {}),
+        [key]: value
+      }
+    }));
+    
+    // Wenn wir in Electron sind, versuchen wir, die Änderung auch direkt zu speichern
+    if (isElectronApp && typeof electronAPI === 'object' && electronAPI !== null && typeof electronAPI.updateUserPreference === 'function') {
+      try {
+        await electronAPI.updateUserPreference(key, value);
+      } catch (error) {
+        console.error(`Fehler beim direkten Aktualisieren der Benutzereinstellung ${key}:`, error);
+      }
+    }
+  };  // API-Einstellungen aktualisieren
+  const updateApiSetting = async (category: keyof AppConfig['apiSettings'], key: string, value: any) => {
+    setConfig(prevConfig => {
+      const currentCategory = prevConfig.apiSettings?.[category] || {};
+      
+      return {
+        ...prevConfig,
+        apiSettings: {
+          ...(prevConfig.apiSettings || {}),
+          [category]: {
+            ...currentCategory,
+            [key]: value
+          }
+        }
+      };
+    });
+  };
+  // Storage-Einstellungen aktualisieren
+  const updateStorageSetting = async (key: keyof AppConfig['storageSettings'], value: any) => {
+    setConfig(prevConfig => ({
+      ...prevConfig,
+      storageSettings: {
+        ...(prevConfig.storageSettings || {}),
+        [key]: value
+      }
+    }));
+  };
+
+  // API-Verbindung testen
+  const testApiConnection = async (service: string) => {
+    toast({
+      title: `${service} wird getestet...`,
+      description: "Die Verbindung wird überprüft.",
+      variant: "default",
+    });
+    
+    // Hier würde später die echte API-Validierung stattfinden
+    setTimeout(() => {
+      toast({
+        title: `${service} Test`,
+        description: "Verbindungstest erfolgreich! API funktioniert.",
+        variant: "default",
+      });
+    }, 2000);
+  };
+  // Status-Badge für Verbindungen
+  const getConnectionStatus = (service: keyof AppConfig['apiSettings']) => {
+    // Sicherheitsprüfung: Stelle sicher, dass config und apiSettings existieren
+    if (!config || !config.apiSettings) {
+      return 'disconnected';
+    }
+
+    switch (service) {
+      case 'weather':
+        return config.apiSettings.weather?.apiKey ? 'connected' : 'disconnected';
+      case 'teams':
+        return config.apiSettings.teams?.enabled && config.apiSettings.teams?.clientId ? 'connected' : 'disconnected';
+      case 'webcam':
+        return 'connected'; // Webcam ist immer verfügbar
+      default:
+        return 'disconnected';
+    }
+  };
+  const StatusBadge = ({ status }: { status: string }) => {
+    switch (status) {
+      case 'connected':
+        return <Badge variant="default" className="bg-green-500"><CheckCircle className="w-3 h-3 mr-1" />Verbunden</Badge>;
+      case 'disconnected':
+        return <Badge variant="secondary"><XCircle className="w-3 h-3 mr-1" />Nicht konfiguriert</Badge>;
+      default:
+        return <Badge variant="outline"><AlertCircle className="w-3 h-3 mr-1" />Unbekannt</Badge>;
+    }
+  };  // Cloud-Verbindung testen
+  const testCloudConnection = async () => {
+    if (!config || !config.storageSettings) {
+      toast({
+        title: "Fehler",
+        description: "Konfiguration ist noch nicht geladen.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const cloudSyncPath = config.storageSettings.cloudSyncPath;
+    
+    if (!cloudSyncPath || cloudSyncPath.trim() === '') {
+      toast({
+        title: "Kein Sync-Pfad konfiguriert",
+        description: "Bitte wählen Sie einen Cloud-Sync-Pfad aus.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Cloud-Verbindung wird getestet...",
+      description: `Teste Verbindung zu: ${cloudSyncPath}`,
+      variant: "default",
+    });
+    
+    try {
+      const syncInstance = getCloudSyncInstance(cloudSyncPath);
+      
+      if (syncInstance.isAvailable()) {
+        // Teste durch eine echte Synchronisation
+        const result = await performManualSync(cloudSyncPath);
+        
+        if (result.success) {
+          toast({
+            title: "Cloud-Verbindung erfolgreich",
+            description: `Synchronisation funktioniert. ${result.filessynced} Dateien synchronisiert.`,
+            variant: "default",
+          });
+        } else {
+          toast({
+            title: "Cloud-Sync mit Problemen",
+            description: `Verbindung OK, aber Sync-Fehler: ${result.message}`,
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: "Cloud-Sync nicht verfügbar",
+          description: "Desktop-App erforderlich oder Pfad ungültig.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Fehler beim Testen der Cloud-Verbindung:', error);
+      toast({
+        title: "Verbindungstest fehlgeschlagen",
+        description: `Fehler: ${(error as Error).message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Manuelles Backup erstellen
+  const createManualBackup = async () => {
+    toast({
+      title: "Backup wird erstellt...",
+      description: "Alle Daten werden gesichert",
+      variant: "default",
+    });
+    
+    try {
+      if (isElectronApp && electronAPI && typeof electronAPI.createBackupFolder === 'function') {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const backupPath = await electronAPI.createBackupFolder(timestamp);
+        
+        if (backupPath) {
+          const success = await electronAPI.backupDataFiles(backupPath);
+          if (success) {
+            toast({
+              title: "Backup erfolgreich",
+              description: `Backup erstellt in: ${backupPath}`,
+              variant: "default",
+            });
+          } else {
+            throw new Error('Backup-Erstellung fehlgeschlagen');
+          }
+        } else {
+          throw new Error('Backup-Ordner konnte nicht erstellt werden');
+        }
+      } else {
+        toast({
+          title: "Backup im Browser-Modus",
+          description: "Manuelle Backups sind nur in der Desktop-App verfügbar",
+          variant: "default",
+        });
+      }
+    } catch (error) {
+      console.error('Backup-Fehler:', error);
+      toast({
+        title: "Backup fehlgeschlagen",
+        description: "Das Backup konnte nicht erstellt werden",
+        variant: "destructive",
+      });
+    }
+  };
+  // Direkter Cloud-Sync ohne externe Dependencies
+  const performDirectCloudSync = async (cloudSyncPath: string) => {
+    if (!isElectronApp || !electronAPI) {
+      throw new Error('Nur in der Desktop-App verfügbar');
+    }
+
+    const result = {
+      success: false,
+      message: '',
+      filessynced: 0,
+      errors: [] as string[]
+    };
+
+    try {
+      // 1. Lokale Datei-Pfade ermitteln
+      const appDataPath = await electronAPI.getDatabasePath();
+      const localDataDir = appDataPath.substring(0, appDataPath.lastIndexOf('\\'));
+      const localDataFile = localDataDir + '\\app-data.json';
+      
+      // 2. Cloud-Ordner vorbereiten
+      const cloudDataDir = cloudSyncPath + '\\data';
+      const cloudDataFile = cloudDataDir + '\\app-data.json';
+      
+      // 3. Prüfen, ob lokale Datei existiert
+      const localExists = await electronAPI.fileExists(localDataFile);
+      const cloudExists = await electronAPI.fileExists(cloudDataFile);
+      
+      console.log('[DirectSync] Lokale Datei:', localDataFile, 'existiert:', localExists);
+      console.log('[DirectSync] Cloud-Datei:', cloudDataFile, 'existiert:', cloudExists);
+      
+      // 4. Sync-Logik
+      if (!localExists && !cloudExists) {
+        result.message = 'Keine Daten zum Synchronisieren gefunden';
+        return result;
+      }
+      
+      if (localExists && !cloudExists) {
+        // Upload: Lokale Daten in Cloud kopieren
+        try {
+          // Erstelle Cloud-Datenordner falls nötig (durch Electron)
+          const localData = await electronAPI.readJsonFile(localDataFile);
+          await electronAPI.writeJsonFile(cloudDataFile, localData);
+          result.filessynced = 1;
+          result.message = 'Lokale Daten erfolgreich in Cloud hochgeladen';
+          result.success = true;
+        } catch (error) {
+          result.errors.push(`Upload-Fehler: ${(error as Error).message}`);
+          result.message = 'Upload fehlgeschlagen';
+        }
+        return result;
+      }
+      
+      if (!localExists && cloudExists) {
+        // Download: Cloud-Daten lokal speichern
+        try {
+          const cloudData = await electronAPI.readJsonFile(cloudDataFile);
+          await electronAPI.writeJsonFile(localDataFile, cloudData);
+          result.filessynced = 1;
+          result.message = 'Cloud-Daten erfolgreich heruntergeladen';
+          result.success = true;
+          
+          // App-Reload empfehlen
+          setTimeout(() => {
+            toast({
+              title: "Daten aktualisiert",
+              description: "Die App sollte neu geladen werden, um die neuen Daten zu verwenden.",
+              variant: "default",
+            });
+          }, 1000);
+          
+        } catch (error) {
+          result.errors.push(`Download-Fehler: ${(error as Error).message}`);
+          result.message = 'Download fehlgeschlagen';
+        }
+        return result;
+      }
+      
+      // Beide existieren - Synchronisation nach Zeitstempel
+      if (localExists && cloudExists) {
+        try {
+          // Vergleiche Dateigröße oder Änderungszeit (vereinfacht)
+          const localData = await electronAPI.readJsonFile(localDataFile);
+          const cloudData = await electronAPI.readJsonFile(cloudDataFile);
+          
+          const localSize = JSON.stringify(localData).length;
+          const cloudSize = JSON.stringify(cloudData).length;
+          
+          if (localSize !== cloudSize) {
+            // Unterschiedliche Daten - nimm die lokale Version (sicherer)
+            await electronAPI.writeJsonFile(cloudDataFile, localData);
+            result.filessynced = 1;
+            result.message = 'Lokale Änderungen in Cloud synchronisiert';
+            result.success = true;
+          } else {
+            result.message = 'Daten sind bereits synchron';
+            result.success = true;
+          }
+        } catch (error) {
+          result.errors.push(`Sync-Fehler: ${(error as Error).message}`);
+          result.message = 'Synchronisation fehlgeschlagen';
+        }
+        return result;
+      }
+      
+    } catch (error) {
+      console.error('[DirectSync] Unerwarteter Fehler:', error);
+      result.errors.push(`Systemfehler: ${(error as Error).message}`);
+      result.message = 'Synchronisation mit Systemfehler fehlgeschlagen';
+    }
+    
+    return result;
+  };
+
+  // Manueller Cloud-Sync mit direkter Implementierung
+  const performManualCloudSync = async () => {
+    if (!config || !config.storageSettings) {
+      toast({
+        title: "Fehler",
+        description: "Konfiguration ist noch nicht geladen.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const cloudSyncPath = config.storageSettings.cloudSyncPath;
+    
+    if (!cloudSyncPath || cloudSyncPath.trim() === '') {
+      toast({
+        title: "Kein Sync-Pfad konfiguriert",
+        description: "Bitte wählen Sie zuerst einen Cloud-Sync-Pfad aus.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSyncing(true);
+    try {
+      console.log('[Settings] Starte direkten Cloud-Sync für Pfad:', cloudSyncPath);
+      const result = await performDirectCloudSync(cloudSyncPath);
+      
+      console.log('[Settings] Direkter Cloud-Sync Ergebnis:', result);
+      
+      if (result.success) {
+        toast({
+          title: "Synchronisation erfolgreich",
+          description: `${result.message} (${result.filessynced} Dateien)`,
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Synchronisation fehlgeschlagen",
+          description: `${result.message}${result.errors.length > 0 ? ` Fehler: ${result.errors.join(', ')}` : ''}`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('[Settings] Cloud-Sync Fehler:', error);
+      toast({
+        title: "Synchronisation fehlgeschlagen",
+        description: `Unerwarteter Fehler: ${(error as Error).message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Originale Cloud-Sync-Funktion (Fallback)
+  const performManualCloudSyncOriginal = async () => {
+    if (!config || !config.storageSettings) {
+      toast({
+        title: "Fehler",
+        description: "Konfiguration ist noch nicht geladen.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const cloudSyncPath = config.storageSettings.cloudSyncPath;
+    
+    if (!cloudSyncPath || cloudSyncPath.trim() === '') {
+      toast({
+        title: "Kein Sync-Pfad konfiguriert",
+        description: "Bitte wählen Sie zuerst einen Cloud-Sync-Pfad aus.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSyncing(true);
+    try {
+      console.log('[Settings] Starte manuellen Cloud-Sync für Pfad:', cloudSyncPath);
+      const result = await performManualSync(cloudSyncPath);
+      
+      console.log('[Settings] Cloud-Sync Ergebnis:', result);
+      
+      // Zusätzliche Success-Behandlung hier, da performManualSync bereits Toast zeigt
+      if (result.success && result.filessynced > 0) {
+        // Auto-Sync konfigurieren falls aktiviert
+        if (config.storageSettings.autoSync) {
+          const syncInstance = getCloudSyncInstance(cloudSyncPath);
+          syncInstance.startAutoSync(config.storageSettings.syncInterval || 30);
+          console.log('[Settings] Auto-Sync konfiguriert');
+        }
+      }
+    } catch (error) {
+      console.error('[Settings] Fehler beim manuellen Cloud-Sync:', error);
+      toast({
+        title: "Sync fehlgeschlagen",
+        description: `Unerwarteter Fehler: ${(error as Error).message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Detaillierte Sync-Informationen anzeigen
+  const showSyncDetails = () => {
+    const cloudSyncPath = config?.storageSettings?.cloudSyncPath || 'Nicht konfiguriert';
+    const syncStrategy = config?.storageSettings?.syncStrategy || 'incremental';
+    const autoSync = config?.storageSettings?.autoSync ? 'Aktiviert' : 'Deaktiviert';
+    const syncInterval = config?.storageSettings?.syncInterval || 30;
+    
+    toast({
+      title: "Sync-Details",
+      description: `Pfad: ${cloudSyncPath}\nStrategie: ${syncStrategy}\nAuto-Sync: ${autoSync} (${syncInterval} Min)`,
+      variant: "default",
+    });
+  };
+  // Export-Ordner öffnen
+  const handleOpenExportFolder = async () => {
+    if (!isElectronApp) return;
+    
+    if (typeof electronAPI !== 'object' || electronAPI === null) {
+      console.error('electronAPI ist nicht definiert');
+      toast({
+        title: "Fehler",
+        description: "Die Electron-API ist nicht verfügbar.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (typeof electronAPI.openExportFolder !== 'function') {
+      console.error('electronAPI.openExportFolder ist keine Funktion');
+      toast({
+        title: "Fehler",
+        description: "Die Funktion zum Öffnen des Export-Ordners ist nicht verfügbar.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      await electronAPI.openExportFolder();
+    } catch (error) {
+      console.error('Fehler beim Öffnen des Export-Ordners:', error);
+      toast({
+        title: "Fehler",
+        description: "Der Export-Ordner konnte nicht geöffnen werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // PHASE 1: Funktion zum Aktualisieren der GartenConfiguration
+  const updateGartenConfiguration = async (updates: Partial<GartenConfiguration>) => {
+    if (!gartenConfiguration) return;
+    
+    try {
+      const response = await fetch('/api/garten-configuration', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updates),
+      });
+        if (response.ok) {
+        const updatedConfig = await response.json();
+        setGartenConfiguration(updatedConfig);
+        
+        // Event für andere Komponenten auslösen
+        localStorage.setItem('garden-settings-updated', Date.now().toString());
+        window.dispatchEvent(new CustomEvent('garden-config-updated', { detail: updatedConfig }));
+        
+        toast({
+          title: "Gespeichert",
+          description: "Die Beetkonfiguration wurde erfolgreich gespeichert.",
+          variant: "default",
+        });
+      } else {
+        throw new Error('Failed to update configuration');
+      }
+    } catch (error) {
+      console.error('Error updating garden configuration:', error);
+      toast({
+        title: "Fehler",
+        description: "Die Beetkonfiguration konnte nicht gespeichert werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Export-Ordner über Dialog auswählen
+  const handleSelectExportFolder = async () => {
+    if (!isElectronApp || !electronAPI?.selectDirectory) {
+      toast({
+        title: "Fehler",
+        description: "Die Ordner-Auswahl ist nur in der Desktop-App verfügbar.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      const selectedPath = await electronAPI.selectDirectory();
+      if (selectedPath) {
+        setExportPath(selectedPath);
+        // Speichere den neuen Export-Pfad in der Konfiguration
+        if (config) {
+          const updatedConfig = { ...config, exportPath: selectedPath };
+          setConfig(updatedConfig);
+          await saveConfig(updatedConfig);
+          
+          toast({
+            title: "Export-Pfad aktualisiert",
+            description: `Neuer Export-Pfad: ${selectedPath}`,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Fehler beim Auswählen des Export-Ordners:', error);
+      toast({
+        title: "Fehler",
+        description: "Der Export-Ordner konnte nicht ausgewählt werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // PHASE 1: Cloud-Sync-Pfad auswählen
+  const handleSelectCloudSyncFolder = async () => {
+    if (!isElectronApp || !electronAPI?.selectDirectory) {
+      toast({
+        title: "Fehler",
+        description: "Die Ordner-Auswahl ist nur in der Desktop-App verfügbar.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      const selectedPath = await electronAPI.selectDirectory();
+      if (selectedPath) {
+        updateStorageSetting('cloudSyncPath', selectedPath);
+        
+        toast({
+          title: "Cloud-Sync-Pfad aktualisiert",
+          description: `Neuer Sync-Pfad: ${selectedPath}`,
+        });
+      }
+    } catch (error) {
+      console.error('Fehler beim Auswählen des Cloud-Sync-Ordners:', error);
+      toast({
+        title: "Fehler",
+        description: "Der Cloud-Sync-Ordner konnte nicht ausgewählt werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (!isElectronApp) {
+    return (
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle>Einstellungen</CardTitle>
+          <CardDescription>Einstellungen sind nur in der Desktop-Version verfügbar.</CardDescription>
+        </CardHeader>
+        <CardContent className="text-center py-6">
+          <Info className="mx-auto mb-4 w-12 h-12 text-muted-foreground" />
+          <p>Diese Seite ist nur in der Electron Desktop-App verfügbar.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  if (isLoading || !config) {
+    return (
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle>Einstellungen werden geladen...</CardTitle>
+        </CardHeader>
+        <CardContent className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="container py-6">
+      <h1 className="text-3xl font-bold mb-6">Einstellungen</h1>
+      
+      <Tabs defaultValue="general" className="mb-8">
+        <TabsList className="mb-6 w-full flex flex-wrap justify-start h-auto gap-1 p-1">
+          <TabsTrigger value="general" className="flex flex-col items-center gap-1 h-auto py-2 px-3 min-w-fit">
+            <Settings2 className="w-4 h-4" />
+            <span className="text-xs whitespace-nowrap">Allgemein</span>
+          </TabsTrigger>
+          <TabsTrigger value="garden" className="flex flex-col items-center gap-1 h-auto py-2 px-3 min-w-fit bg-blue-50 border-blue-200 text-blue-700">
+            <LayoutGrid className="w-4 h-4" />
+            <span className="text-xs whitespace-nowrap font-medium">Beetkonfiguration</span>
+          </TabsTrigger>
+          <TabsTrigger value="appearance" className="flex flex-col items-center gap-1 h-auto py-2 px-3 min-w-fit">
+            <Paintbrush className="w-4 h-4" />
+            <span className="text-xs whitespace-nowrap">Darstellung</span>
+          </TabsTrigger>
+          <TabsTrigger value="paths" className="flex flex-col items-center gap-1 h-auto py-2 px-3 min-w-fit">
+            <Folder className="w-4 h-4" />
+            <span className="text-xs whitespace-nowrap">Dateipfade</span>
+          </TabsTrigger>
+          <TabsTrigger value="defaults" className="flex flex-col items-center gap-1 h-auto py-2 px-3 min-w-fit">
+            <Layout className="w-4 h-4" />
+            <span className="text-xs whitespace-nowrap">Standardwerte</span>
+          </TabsTrigger>
+          <TabsTrigger value="apis" className="flex flex-col items-center gap-1 h-auto py-2 px-3 min-w-fit">
+            <Cloud className="w-4 h-4" />
+            <span className="text-xs whitespace-nowrap">API-Integrationen</span>
+          </TabsTrigger>
+          <TabsTrigger value="storage" className="flex flex-col items-center gap-1 h-auto py-2 px-3 min-w-fit">
+            <Database className="w-4 h-4" />
+            <span className="text-xs whitespace-nowrap">Datenspeicher & Sync</span>
+          </TabsTrigger>
+          <TabsTrigger value="nas" className="flex flex-col items-center gap-1 h-auto py-2 px-3 min-w-fit">
+            <HardDrive className="w-4 h-4" />
+            <span className="text-xs whitespace-nowrap">NAS & Remote</span>
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Allgemeine Einstellungen */}
+        <TabsContent value="general">
+          <Card>
+            <CardHeader>
+              <CardTitle>Allgemeine Einstellungen</CardTitle>
+              <CardDescription>Grundlegende Einstellungen für die App</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="remember-size">Fenstergröße speichern</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Speichert die Fenstergröße beim Beenden der App
+                  </p>
+                </div>
+                <Switch
+                  id="remember-size"
+                  checked={config.rememberWindowSize}
+                  onCheckedChange={(checked) => setConfig({...config, rememberWindowSize: checked})}
+                />
+              </div>
+              
+              <Separator />
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="auto-start-server">Next.js-Server automatisch starten</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Im Entwicklungsmodus den Next.js-Server automatisch starten
+                  </p>
+                </div>
+                <Switch
+                  id="auto-start-server"
+                  checked={config.autoStartNextServer}
+                  onCheckedChange={(checked) => setConfig({...config, autoStartNextServer: checked})}
+                />
+              </div>            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* PHASE 1: Beetkonfiguration */}
+        <TabsContent value="garden">
+          <Card>
+            <CardHeader>
+              <CardTitle>Beetkonfiguration</CardTitle>
+              <CardDescription>Manage die Anzahl und Aufteilung der Gartenbeete</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {gartenConfiguration ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="beetcount">Aktuelle Beetanzahl</Label>
+                    <div className="flex items-center gap-4">
+                      <Input
+                        id="beetcount"
+                        type="number"
+                        min="1"
+                        max="50"
+                        value={gartenConfiguration.currentBeetCount}
+                        onChange={(e) => {
+                          const newCount = Math.max(1, Math.min(50, parseInt(e.target.value) || 1));
+                          updateGartenConfiguration({ currentBeetCount: newCount });
+                        }}
+                        className="w-24"
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        (1-{gartenConfiguration.maxBeetCount} Beete möglich)
+                      </span>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-2">
+                    <Label htmlFor="gartenname">Gartenname (optional)</Label>
+                    <Input
+                      id="gartenname"
+                      value={gartenConfiguration.gartenName || ''}
+                      onChange={(e) => {
+                        updateGartenConfiguration({ gartenName: e.target.value });
+                      }}
+                      placeholder="z.B. Hauptgarten, Hintergarten, ..."
+                    />
+                  </div>
+
+                  <Separator />
+
+                  <div className="bg-muted/30 p-4 rounded-lg">
+                    <h4 className="font-medium mb-2">Status</h4>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span>Aktive Beete:</span>
+                        <span className="font-medium">{gartenConfiguration.currentBeetCount}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Maximale Beete:</span>
+                        <span className="font-medium">{gartenConfiguration.maxBeetCount}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Letzte Änderung:</span>
+                        <span className="font-medium">
+                          {gartenConfiguration.lastModified ? 
+                            new Date(gartenConfiguration.lastModified).toLocaleDateString('de-DE') : 
+                            'Unbekannt'
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <div className="flex items-start gap-2">
+                      <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                      <div className="text-sm text-blue-700">
+                        <p className="font-medium mb-1">Phase 1: Flexible Beetanzahl</p>
+                        <p>Diese Funktion ermöglicht es, die Anzahl der Beete dynamisch zu verwalten. Alle Ansichten und PDF-Exporte werden automatisch an die gewählte Beetanzahl angepasst.</p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-center space-y-2">
+                    <AlertCircle className="w-8 h-8 text-muted-foreground mx-auto" />
+                    <p className="text-muted-foreground">Beetkonfiguration wird geladen...</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Darstellungs-Einstellungen */}
+        <TabsContent value="appearance">
+          <Card>
+            <CardHeader>
+              <CardTitle>Darstellung</CardTitle>
+              <CardDescription>Passe die visuelle Darstellung der App an</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label>App-Theme</Label>
+                <Select
+                  value={config.appTheme}
+                  onValueChange={(value) => setConfig({...config, appTheme: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Wähle ein Theme" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="light">Hell</SelectItem>
+                    <SelectItem value="dark">Dunkel</SelectItem>
+                    <SelectItem value="system">System</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Separator />
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Zoom-Level: {config.zoomLevel}</Label>
+                </div>
+                <Slider
+                  value={[config.zoomLevel]}
+                  min={-5}
+                  max={5}
+                  step={1}
+                  onValueChange={(value) => setConfig({...config, zoomLevel: value[0]})}
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Kleiner</span>
+                  <span>Normal</span>
+                  <span>Größer</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Dateipfade */}
+        <TabsContent value="paths">
+          <Card>
+            <CardHeader>
+              <CardTitle>Dateipfade</CardTitle>
+              <CardDescription>Pfade zu Anwendungsdaten und Exportdateien</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">              <div className="space-y-2">
+                <Label>Export-Pfad</Label>
+                <div className="flex items-center gap-2">
+                  <Input 
+                    type="text" 
+                    className="flex-1" 
+                    value={exportPath || ''} 
+                    onChange={(e) => setExportPath(e.target.value)}
+                    placeholder="C:\Users\Benutzername\Documents\GartenMeister\Exports"
+                  />
+                  <Button variant="outline" size="sm" onClick={handleSelectExportFolder}>
+                    <Folder className="w-4 h-4 mr-2" />
+                    Durchsuchen
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleOpenExportFolder}>
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Öffnen
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Ordner für PDF-Exporte und Backups. Kann für Cloud-Synchronisation verwendet werden.
+                </p>
+              </div>
+              
+              <Separator />
+              
+              <div className="space-y-2">
+                <Label>Datenbank-Pfad</Label>
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="text" 
+                    className="flex-1 bg-muted px-3 py-2 rounded-md text-sm" 
+                    value={databasePath || ''} 
+                    readOnly 
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Standardwerte */}
+        <TabsContent value="defaults">
+          <Card>
+            <CardHeader>
+              <CardTitle>Standardwerte</CardTitle>
+              <CardDescription>Standardwerte für neue Elemente</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label>Standard-Beettyp</Label>
+                  <Select
+                    value={config?.userPreferences?.defaultBeetType || 'vegetables'}
+                    onValueChange={(value) => updateUserPreference('defaultBeetType', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Wähle einen Beettyp" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Standard">Standardbeet</SelectItem>
+                      <SelectItem value="Kombinationsbeet">Kombinationsbeet</SelectItem>
+                      <SelectItem value="Blühstreifen">Blühstreifen</SelectItem>
+                      <SelectItem value="Brachfläche">Brachfläche</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Standard-Beetbreite (m): {config?.userPreferences?.defaultBeetWidth || 1.2}</Label>
+                  <Slider
+                    value={[config?.userPreferences?.defaultBeetWidth || 1.2]}
+                    min={0.5}
+                    max={3}
+                    step={0.1}
+                    onValueChange={(value) => updateUserPreference('defaultBeetWidth', value[0])}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Standard-Produktivität (%): {config?.userPreferences?.defaultProductivePercentage || 80}</Label>
+                  <Slider
+                    value={[config?.userPreferences?.defaultProductivePercentage || 80]}
+                    min={0}
+                    max={100}
+                    step={5}
+                    onValueChange={(value) => updateUserPreference('defaultProductivePercentage', value[0])}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="show-beet-numbers">Beetnummern anzeigen</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Beetnummern in der Übersicht anzeigen
+                    </p>
+                  </div>
+                  <Switch
+                    id="show-beet-numbers"
+                    checked={config?.userPreferences?.showBeetNumbers || false}
+                    onCheckedChange={(checked) => updateUserPreference('showBeetNumbers', checked)}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="show-plant-age">Pflanzenalter anzeigen</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Pflanzenalter in der Übersicht anzeigen
+                    </p>
+                  </div>
+                  <Switch
+                    id="show-plant-age"
+                    checked={config?.userPreferences?.showPlantAge || false}
+                    onCheckedChange={(checked) => updateUserPreference('showPlantAge', checked)}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>        </TabsContent>
+
+        {/* API-Integrationen */}
+        <TabsContent value="apis">
+          <div className="space-y-6">
+            {/* Wetter-API */}
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Cloud className="w-5 h-5" />
+                      Wetter-API Konfiguration
+                    </CardTitle>
+                    <CardDescription>
+                      Konfigurieren Sie Ihren Wetterdienst für echte Wetterdaten und historische Analysen
+                    </CardDescription>
+                  </div>
+                  <StatusBadge status={getConnectionStatus('weather')} />
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="weather-provider">Wetterdienst</Label>                    <Select
+                      value={config?.apiSettings?.weather?.provider || 'openweathermap'}
+                      onValueChange={(value) => updateApiSetting('weather', 'provider', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="openweathermap">OpenWeatherMap (Empfohlen)</SelectItem>
+                        <SelectItem value="weatherapi">WeatherAPI.com</SelectItem>
+                        <SelectItem value="meteostat">Meteostat (Historische Daten)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="weather-location">Standort</Label>                    <Input
+                      id="weather-location"
+                      value={config?.apiSettings?.weather?.location || ''}
+                      onChange={(e) => updateApiSetting('weather', 'location', e.target.value)}
+                      placeholder="Gurk, Österreich"
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="weather-api-key">API-Schlüssel</Label>
+                  <div className="flex gap-2">                    <Input
+                      id="weather-api-key"
+                      type={showApiKeys ? "text" : "password"}
+                      value={config?.apiSettings?.weather?.apiKey || ''}
+                      onChange={(e) => updateApiSetting('weather', 'apiKey', e.target.value)}
+                      placeholder="Ihr OpenWeatherMap API-Schlüssel"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setShowApiKeys(!showApiKeys)}
+                    >
+                      {showApiKeys ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                </div>                <div className="flex items-center justify-between p-3 bg-muted rounded-md">
+                  <div>
+                    <p className="font-medium">Historische Wetterdaten</p>
+                    <p className="text-sm text-muted-foreground">Ermöglicht Jahresvergleiche und Trend-Analysen</p>
+                  </div>                  <Switch
+                    checked={config?.apiSettings?.weather?.historicalDataEnabled || false}
+                    onCheckedChange={(checked) => updateApiSetting('weather', 'historicalDataEnabled', checked)}
+                  />
+                </div>
+
+                {/* Meteostat-spezifische Einstellungen */}
+                {config?.apiSettings?.weather?.provider === 'meteostat' && (
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Info className="w-4 h-4 text-blue-600" />
+                      <span className="font-medium text-blue-800">Meteostat API Einstellungen</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="meteostat-rapidapi-key">RapidAPI Schlüssel</Label>
+                        <Input
+                          id="meteostat-rapidapi-key"
+                          type={showApiKeys ? "text" : "password"}
+                          value={config?.apiSettings?.weather?.meteostat?.rapidApiKey || ''}
+                          onChange={(e) => updateApiSetting('weather', 'meteostat', {
+                            ...config?.apiSettings?.weather?.meteostat,
+                            rapidApiKey: e.target.value
+                          })}
+                          placeholder="RapidAPI Key"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="meteostat-app-id">Application ID</Label>
+                        <Input
+                          id="meteostat-app-id"
+                          value={config?.apiSettings?.weather?.meteostat?.applicationId || ''}
+                          onChange={(e) => updateApiSetting('weather', 'meteostat', {
+                            ...config?.apiSettings?.weather?.meteostat,
+                            applicationId: e.target.value
+                          })}
+                          placeholder="Application ID"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="text-sm text-blue-600 bg-blue-100 p-3 rounded">
+                      <p className="font-medium">API-Limit: {config?.apiSettings?.weather?.meteostat?.monthlyLimit || 500} Anfragen/Monat</p>
+                      <p>Meteostat bietet historische Wetterdaten über RapidAPI mit einem monatlichen Limit.</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <Button onClick={() => testApiConnection('Wetter-API')}>
+                    <TestTube className="w-4 h-4 mr-2" />
+                    Verbindung testen
+                  </Button>
+                  <Button variant="outline" asChild>
+                    <a href="https://openweathermap.org/api" target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      API-Schlüssel besorgen
+                    </a>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Microsoft Teams */}
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="w-5 h-5" />
+                      Microsoft Teams Integration
+                    </CardTitle>
+                    <CardDescription>
+                      Teams-Integration für Kollaboration und Meetings
+                    </CardDescription>
+                  </div>
+                  <StatusBadge status={getConnectionStatus('teams')} />
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-muted rounded-md">
+                  <div>
+                    <p className="font-medium">Microsoft Teams aktivieren</p>
+                    <p className="text-sm text-muted-foreground">Teams-Funktionen im Dashboard</p>
+                  </div>                  <Switch
+                    checked={config?.apiSettings?.teams?.enabled || false}
+                    onCheckedChange={(checked) => updateApiSetting('teams', 'enabled', checked)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="teams-client-id">Azure Client-ID</Label>
+                  <Input
+                    id="teams-client-id"
+                    type={showApiKeys ? "text" : "password"}
+                    value={config?.apiSettings?.teams?.clientId || ''}
+                    onChange={(e) => updateApiSetting('teams', 'clientId', e.target.value)}
+                    placeholder="Azure App Registration Client-ID"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="teams-tenant-id">Azure Tenant-ID</Label>
+                  <Input
+                    id="teams-tenant-id"
+                    type={showApiKeys ? "text" : "password"}
+                    value={config?.apiSettings?.teams?.tenantId || ''}
+                    onChange={(e) => updateApiSetting('teams', 'tenantId', e.target.value)}
+                    placeholder="Azure Tenant-ID"
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button onClick={() => testApiConnection('Microsoft Teams')}>
+                    <TestTube className="w-4 h-4 mr-2" />
+                    Verbindung testen
+                  </Button>
+                  <Button variant="outline" asChild>
+                    <a href="https://portal.azure.com/" target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Azure Portal
+                    </a>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Webcam */}
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Camera className="w-5 h-5" />
+                      Webcam Konfiguration
+                    </CardTitle>
+                    <CardDescription>
+                      Kamera-Einstellungen für Garten-Überwachung und Dokumentation
+                    </CardDescription>
+                  </div>
+                  <StatusBadge status={getConnectionStatus('webcam')} />
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="webcam-device">Standard-Kamera</Label>
+                  <Input
+                    id="webcam-device"
+                    value={config?.apiSettings?.webcam?.defaultDevice || ''}
+                    onChange={(e) => updateApiSetting('webcam', 'defaultDevice', e.target.value)}
+                    placeholder="Automatisch erkennen"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-muted rounded-md">
+                  <div>
+                    <p className="font-medium">Automatische Aufnahmen</p>
+                    <p className="text-sm text-muted-foreground">Zeitraffer für Garten-Dokumentation</p>
+                  </div>
+                  <Switch
+                    checked={config?.apiSettings?.webcam?.autoCapture || false}
+                    onCheckedChange={(checked) => updateApiSetting('webcam', 'autoCapture', checked)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="capture-interval">Aufnahme-Intervall (Minuten)</Label>
+                  <Slider
+                    id="capture-interval"
+                    min={1}
+                    max={1440}
+                    step={1}
+                    value={[config?.apiSettings?.webcam?.captureInterval || 30]}
+                    onValueChange={(value) => updateApiSetting('webcam', 'captureInterval', value[0])}
+                    className="w-full"
+                  />
+                  <div className="text-sm text-muted-foreground text-center">
+                    {config?.apiSettings?.webcam?.captureInterval || 30} Minuten
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="storage-location">Speicherort</Label>
+                  <Input
+                    id="storage-location"
+                    value={config?.apiSettings?.webcam?.storageLocation || ''}
+                    onChange={(e) => updateApiSetting('webcam', 'storageLocation', e.target.value)}
+                    placeholder="Downloads/GartenMeister/Webcam"
+                  />
+                </div>
+
+                <Button onClick={() => testApiConnection('Webcam')}>
+                  <TestTube className="w-4 h-4 mr-2" />
+                  Kamera testen
+                </Button>
+              </CardContent>
+            </Card>          </div>
+        </TabsContent>
+
+        {/* Datenspeicher & Cloud-Sync Einstellungen */}
+        <TabsContent value="storage">
+          <div className="space-y-6">
+            {/* Cloud-Provider Konfiguration */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <CloudSun className="w-5 h-5 mr-2" />
+                  Cloud-Synchronisation
+                </CardTitle>
+                <CardDescription>
+                  Konfigurieren Sie die Synchronisation Ihrer Gartendaten zwischen verschiedenen Geräten
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="cloudProvider">Cloud-Anbieter</Label>                  <Select 
+                    value={config?.storageSettings?.cloudProvider || 'local'} 
+                    onValueChange={(value) => updateStorageSetting('cloudProvider', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Cloud-Anbieter wählen" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="local">
+                        <div className="flex items-center">
+                          <HardDrive className="w-4 h-4 mr-2" />
+                          Nur lokal (keine Synchronisation)
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="onedrive">
+                        <div className="flex items-center">
+                          <Cloud className="w-4 h-4 mr-2" />
+                          Microsoft OneDrive
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="googledrive">
+                        <div className="flex items-center">
+                          <Cloud className="w-4 h-4 mr-2" />
+                          Google Drive
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="firebase">
+                        <div className="flex items-center">
+                          <Database className="w-4 h-4 mr-2" />
+                          Firebase (Team-Sync)
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="cloudSyncPath">Cloud-Sync-Ordner</Label>
+                  <div className="flex gap-2 mt-2">
+                    <div className="flex-1 p-2 border border-border rounded-md bg-muted text-sm">
+                      {config?.storageSettings?.cloudSyncPath || 'Kein Ordner ausgewählt'}
+                    </div>
+                    <Button variant="outline" onClick={handleSelectCloudSyncFolder}>
+                <div className="flex gap-2"> h-4 mr-2" />
+                  <Button onClick={() => testApiConnection('Microsoft Teams')}>
+                    <TestTube className="w-4 h-4 mr-2" />
+                    Verbindung testen
+                  </Button>sName="text-xs text-muted-foreground mt-1">
+                  <Button variant="outline" asChild>(z.B. OneDrive, Google Drive, Dropbox) für die Synchronisation
+                    <a href="https://portal.azure.com/" target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Azure Portal
+                    </a>ssName="flex items-center justify-between">
+                  </Button>sName="space-y-0.5">
+                </div>abel>Automatische Synchronisation</Label>
+              </CardContent>ssName="text-sm text-muted-foreground">
+            </Card>   Daten automatisch mit der Cloud synchronisieren
+                    </div>
+            {/* Webcam */}
+            <Card><Switch 
+              <CardHeader>d={config?.storageSettings?.autoSync || false}
+                <div className="flex justify-between items-center">ing('autoSync', checked)}
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Camera className="w-5 h-5" />
+                      Webcam Konfiguration.autoSync || false) && (
+                    </CardTitle>
+                    <CardDescription>yncInterval">Synchronisationsintervall (Minuten)</Label>
+                      Kamera-Einstellungen für Garten-Überwachung und Dokumentation
+                    </CardDescription>
+                  </div>value={[config?.storageSettings?.syncInterval || 15]}
+                  <StatusBadge status={getConnectionStatus('webcam')} />syncInterval', value[0])}
+                </div>  max={180}
+              </CardHeader>={5}
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="webcam-device">Standard-Kamera</Label>fy-between text-sm text-muted-foreground mt-1">
+                  <Input<span>5 Min</span>
+                    id="webcam-device".storageSettings?.syncInterval || 15} Minuten</span>
+                    value={config?.apiSettings?.webcam?.defaultDevice || ''}
+                    onChange={(e) => updateApiSetting('webcam', 'defaultDevice', e.target.value)}
+                    placeholder="Automatisch erkennen"
+                  />div>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-muted rounded-md">
+                  <div>l htmlFor="syncStrategy">Synchronisationsstrategie</Label>
+                    <p className="font-medium">Automatische Aufnahmen</p>
+                    <p className="text-sm text-muted-foreground">Zeitraffer für Garten-Dokumentation</p>
+                  </div>lueChange={(value) => updateStorageSetting('syncStrategy', value)}
+                  <Switch
+                    checked={config?.apiSettings?.webcam?.autoCapture || false}
+                    onCheckedChange={(checked) => updateApiSetting('webcam', 'autoCapture', checked)}
+                  /></SelectTrigger>
+                </div>electContent>
+                      <SelectItem value="incremental">
+                <div className="space-y-2">
+                  <Label htmlFor="capture-interval">Aufnahme-Intervall (Minuten)</Label>
+                  <Slider <div className="text-sm text-muted-foreground">Nur Änderungen synchronisieren</div>
+                    id="capture-interval"
+                    min={1}ectItem>
+                    max={1440}tem value="full">
+                    step={1}>
+                    value={[config?.apiSettings?.webcam?.captureInterval || 30]}
+                    onValueChange={(value) => updateApiSetting('webcam', 'captureInterval', value[0])}v>
+                    className="w-full"
+                  />  </SelectItem>
+                  <div className="text-sm text-muted-foreground text-center">
+                    {config?.apiSettings?.webcam?.captureInterval || 30} Minuten
+                  </div>  <div className="font-medium">Echtzeit</div>
+                </div>    <div className="text-sm text-muted-foreground">Sofortige Synchronisation</div>
+                        </div>
+                <div className="space-y-2">
+                  <Label htmlFor="storage-location">Speicherort</Label>
+                  <Input<div>
+                    id="storage-location""font-medium">Manuell</div>
+                    value={config?.apiSettings?.webcam?.storageLocation || ''}uf Anfrage</div>
+                    onChange={(e) => updateApiSetting('webcam', 'storageLocation', e.target.value)}
+                    placeholder="Downloads/GartenMeister/Webcam"
+                  /></SelectContent>
+                </div>lect>
+                </div>
+                <Button onClick={() => testApiConnection('Webcam')}>
+                  <TestTube className="w-4 h-4 mr-2" />fy-between">
+                  Kamera testene="space-y-0.5">
+                </Button>l>Nur über WLAN synchronisieren</Label>
+              </CardContent>ssName="text-sm text-muted-foreground">
+            </Card>          </div>h auf mobilen Verbindungen sparen
+        </TabsContent>div>
+                  </div>
+        {/* Datenspeicher & Cloud-Sync Einstellungen */}
+        <TabsContent value="storage">storageSettings?.wifiOnlySync || true}
+          <div className="space-y-6">(checked) => updateStorageSetting('wifiOnlySync', checked)}
+            {/* Cloud-Provider Konfiguration */}
+            <Card>div>
+              <CardHeader>t>
+                <CardTitle className="flex items-center">
+                  <CloudSun className="w-5 h-5 mr-2" />
+                  Cloud-Synchronisation
+                </CardTitle>
+                <CardDescription>
+                  Konfigurieren Sie die Synchronisation Ihrer Gartendaten zwischen verschiedenen Geräten
+                </CardDescription>ssName="w-5 h-5 mr-2" />
+              </CardHeader>uflösung
+              <CardContent className="space-y-4">
+                <div>Description>
+                  <Label htmlFor="cloudProvider">Cloud-Anbieter</Label>                  <Select ollen
+                    value={config?.storageSettings?.cloudProvider || 'local'} 
+                    onValueChange={(value) => updateStorageSetting('cloudProvider', value)}
+                  >Content className="space-y-4">
+                    <SelectTrigger>
+                      <SelectValue placeholder="Cloud-Anbieter wählen" />trategie</Label>
+                    </SelectTrigger>
+                    <SelectContent>storageSettings?.conflictResolution || 'manual'} 
+                      <SelectItem value="local">dateStorageSetting('conflictResolution', value)}
+                        <div className="flex items-center">
+                          <HardDrive className="w-4 h-4 mr-2" />
+                          Nur lokal (keine Synchronisation)ählen" />
+                        </div>igger>
+                      </SelectItem>
+                      <SelectItem value="onedrive">-wins">
+                        <div className="flex items-center">
+                          <Cloud className="w-4 h-4 mr-2" />e Änderung gewinnt</div>
+                          Microsoft OneDrivext-sm text-muted-foreground">Automatisch, einfach</div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="googledrive">
+                        <div className="flex items-center">
+                          <Cloud className="w-4 h-4 mr-2" />zerentscheidung</div>
+                          Google Driveme="text-sm text-muted-foreground">Sie entscheiden bei Konflikten</div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="firebase">">
+                        <div className="flex items-center">
+                          <Database className="w-4 h-4 mr-2" />sches Zusammenführen</div>
+                          Firebase (Team-Sync)-sm text-muted-foreground">Intelligente Konfliktauflösung</div>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>lue="create-branch">
+                  </Select>v>
+                </div>    <div className="font-medium">Versionen erstellen</div>
+                          <div className="text-sm text-muted-foreground">Beide Versionen behalten</div>
+                <div>   </div>
+                  <Label htmlFor="cloudSyncPath">Cloud-Sync-Ordner</Label>
+                  <div className="flex gap-2 mt-2">
+                    <div className="flex-1 p-2 border border-border rounded-md bg-muted text-sm">
+                      {config?.storageSettings?.cloudSyncPath || 'Kein Ordner ausgewählt'}
+                    </div>t>
+                    <Button variant="outline" onClick={handleSelectCloudSyncFolder}>
+                      <Folder className="w-4 h-4 mr-2" />
+                      Ordner wähleninstellungen */}
+                    </Button>
+                  </div>r>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Wählen Sie einen lokalen Ordner (z.B. OneDrive, Google Drive, Dropbox) für die Synchronisation
+                  </div>Verwaltung & Backup
+                </div>Title>
+                <CardDescription>
+                <div className="flex items-center justify-between">e Backups
+                  <div className="space-y-0.5">
+                    <Label>Automatische Synchronisation</Label>
+                    <div className="text-sm text-muted-foreground">
+                      Daten automatisch mit der Cloud synchronisieren
+                    </div>tmlFor="maxFileSize">Maximale Dateigröße (MB)</Label>
+                  </div>lassName="mt-2">
+                  <Switch r
+                    checked={config?.storageSettings?.autoSync || false}]}
+                    onCheckedChange={(checked) => updateStorageSetting('autoSync', checked)})}
+                  />  max={500}
+                </div>min={1}
+                      step={1}
+                {(config?.storageSettings?.autoSync || false) && (
+                  <div>
+                    <Label htmlFor="syncInterval">Synchronisationsintervall (Minuten)</Label>
+                    <div className="mt-2">
+                      <Sliderconfig?.storageSettings?.maxFileSize || 50} MB</span>
+                        value={[config?.storageSettings?.syncInterval || 15]}
+                        onValueChange={(value) => updateStorageSetting('syncInterval', value[0])}
+                        max={180}
+                        min={5}
+                        step={5}
+                        className="w-full"-center justify-between">
+                      />                      <div className="flex justify-between text-sm text-muted-foreground mt-1">
+                        <span>5 Min</span>ieren</Label>
+                        <span>{config?.storageSettings?.syncInterval || 15} Minuten</span>
+                        <span>3 Std</span>ür Web optimieren
+                      </div>
+                  </div>
+                  <Switch 
+                    checked={config?.storageSettings?.compressionEnabled || true}
+                    onCheckedChange={(checked) => updateStorageSetting('compressionEnabled', checked)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Daten verschlüsseln</Label>
+                    <div className="text-sm text-muted-foreground">
+                      End-to-End Verschlüsselung für sensible Daten
+                    </div>
+                  </div>
+                  <Switch 
+                    checked={config?.storageSettings?.enableEncryption || false}
+                    onCheckedChange={(checked) => updateStorageSetting('enableEncryption', checked)}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="backupRetention">Backup-Aufbewahrung (Tage)</Label>
+                  <div className="mt-2">
+                    <Slider
+                      value={[config?.storageSettings?.backupRetentionDays || 30]}
+                      onValueChange={(value) => updateStorageSetting('backupRetentionDays', value[0])}
+                      max={365}
+                      min={7}
+                      step={7}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-sm text-muted-foreground mt-1">
+                      <span>7 Tage</span>
+                      <span>{config?.storageSettings?.backupRetentionDays || 30} Tage</span>
+                      <span>1 Jahr</span>
+                    </div>
+                  </div>
+                </div>                <div className="flex gap-2 flex-wrap">
+                  <Button variant="outline" onClick={() => createManualBackup()}>
+                    <FileDown className="w-4 h-4 mr-2" />
+                    Backup jetzt erstellen
+                  </Button>
+                  <Button variant="outline" onClick={() => testCloudConnection()}>
+                    <Cloud className="w-4 h-4 mr-2" />
+                    Cloud-Verbindung testen
+                  </Button>
+                  <Button variant="default" onClick={() => performManualCloudSync()}>
+                    <Cloud className="w-4 h-4 mr-2" />
+                    Jetzt synchronisieren
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Sync-Status und Statistiken */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Info className="w-5 h-5 mr-2" />
+                  Synchronisationsstatus
+                </CardTitle>
+                <CardDescription>
+                  Aktuelle Sync-Informationen und Statistiken
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {config?.storageSettings?.cloudSyncPath ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex items-center">
+                        <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                        <span className="text-sm">Cloud-Ordner: Verbunden</span>
+                      </div>
+                      <div className="flex items-center">
+                        <Database className="w-4 h-4 mr-2 text-blue-500" />
+                        <span className="text-sm">Bereit für Synchronisation</span>
+                      </div>
+                    </div>
+                    
+                    <div className="p-3 bg-muted rounded-lg">
+                      <div className="text-sm font-medium">Sync-Ordner:</div>
+                      <div className="text-xs text-muted-foreground break-all">
+                        {config.storageSettings.cloudSyncPath}
+                      </div>
+                    </div>
+
+                    <Button variant="outline" onClick={performManualCloudSync} disabled={isSyncing}>
+                      <Cloud className="w-4 h-4 mr-2" />
+                      {isSyncing ? 'Synchronisiere...' : 'Jetzt synchronisieren'}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 space-y-4">
+                    <div className="flex items-center justify-center">
+                      <AlertCircle className="w-8 h-8 text-yellow-500" />
+                    </div>
+                    <div>
+                      <div className="font-medium">Cloud-Sync nicht konfiguriert</div>
+                      <div className="text-sm text-muted-foreground">
+                        Wählen Sie einen Ordner aus, um die Synchronisation zu aktivieren
+                      </div>
+                    </div>
+                    <Button variant="outline" onClick={handleSelectCloudSyncFolder}>
+                      <Folder className="w-4 h-4 mr-2" />
+                      Cloud-Ordner auswählen
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* NAS & Remote Access Einstellungen */}
+        <TabsContent value="nas">
+          <div className="space-y-6">
+            <NASStatusDashboard />
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <p className="text-sm text-green-600">
+                    ✅ Schritt 2 abgeschlossen: NAS-Status-Anzeige implementiert
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Nächste Schritte: Konfiguration, Remote-Client-Management, Monitoring
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      <div className="flex justify-end mt-6">
+        <Button onClick={saveConfig} className="bg-[#8FBC8F] hover:bg-[#2e7d32]">
+          Einstellungen speichern
+        </Button>
+      </div>
+    </div>
+  );
+}

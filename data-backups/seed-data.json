@@ -1,0 +1,115 @@
+{
+  "beds": [],
+  "herbVarieties": [
+    {
+      "id": "basilikum",
+      "name": "Basilikum",
+      "scientificName": "Ocimum basilicum",
+      "category": "Küchenkräuter",
+      "description": "Aromatisches Küchenkraut aus der Familie der Lippenblütler",
+      "growingTips": "Benötigt warmen, sonnigen Standort und regelmäßige Bewässerung",
+      "harvestTime": "Kontinuierlich von Mai bis Oktober",
+      "uses": ["Kochen", "Tee", "Aromatherapie"]
+    },
+    {
+      "id": "thymian",
+      "name": "Thymian",
+      "scientificName": "Thymus vulgaris",
+      "category": "Küchenkräuter",
+      "description": "Mehrjähriges Kraut mit intensivem Aroma",
+      "growingTips": "Bevorzugt durchlässigen, kalkhaltigen Boden und viel Sonne",
+      "harvestTime": "Ganzjährig, beste Zeit vor der Blüte",
+      "uses": ["Kochen", "Heilkraut", "Tee"]
+    },
+    {
+      "id": "rosmarin",
+      "name": "Rosmarin",
+      "scientificName": "Rosmarinus officinalis",
+      "category": "Küchenkräuter",
+      "description": "Immergrüner Strauch mit nadelförmigen Blättern",
+      "growingTips": "Benötigt vollsonnigen Standort und gut durchlässigen Boden",
+      "harvestTime": "Ganzjährig möglich",
+      "uses": ["Kochen", "Heilkraut", "Zierpflanze"]
+    },
+    {
+      "id": "petersilie",
+      "name": "Petersilie",
+      "scientificName": "Petroselinum crispum",
+      "category": "Küchenkräuter",
+      "description": "Zweijähriges Kraut, eines der wichtigsten Küchenkräuter",
+      "growingTips": "Bevorzugt halbschattigen Standort und feuchten Boden",
+      "harvestTime": "Kontinuierlich von Frühjahr bis Herbst",
+      "uses": ["Kochen", "Garnierung", "Heilkraut"]
+    },
+    {
+      "id": "schnittlauch",
+      "name": "Schnittlauch",
+      "scientificName": "Allium schoenoprasum",
+      "category": "Küchenkräuter",
+      "description": "Mehrjähriges Zwiebelgewächs mit röhrenförmigen Blättern",
+      "growingTips": "Robust und anspruchslos, verträgt auch Halbschatten",
+      "harvestTime": "Von Frühjahr bis Herbst",
+      "uses": ["Kochen", "Garnierung", "Salate"]
+    },
+    {
+      "id": "oregano",
+      "name": "Oregano",
+      "scientificName": "Origanum vulgare",
+      "category": "Küchenkräuter",
+      "description": "Würziges Kraut der Mittelmeerküche",
+      "growingTips": "Liebt sonnige, warme Standorte und durchlässigen Boden",
+      "harvestTime": "Vor der Blüte für intensivsten Geschmack",
+      "uses": ["Kochen", "Pizza", "Mediterrane Küche"]
+    },
+    {
+      "id": "salbei",
+      "name": "Salbei",
+      "scientificName": "Salvia officinalis",
+      "category": "Heilkräuter",
+      "description": "Traditionelles Heilkraut mit samtigen Blättern",
+      "growingTips": "Benötigt sonnigen Standort und gut drainierten Boden",
+      "harvestTime": "Vor der Blüte, kann getrocknet werden",
+      "uses": ["Heilkraut", "Tee", "Kochen"]
+    },
+    {
+      "id": "minze",
+      "name": "Minze",
+      "scientificName": "Mentha",
+      "category": "Küchenkräuter",
+      "description": "Stark wucherndes Kraut mit erfrischendem Aroma",
+      "growingTips": "Bevorzugt feuchten Boden, sollte eingedämmt werden",
+      "harvestTime": "Kontinuierlich während der Wachstumsperiode",
+      "uses": ["Tee", "Cocktails", "Süßspeisen"]
+    },
+    {
+      "id": "lavendel",
+      "name": "Lavendel",
+      "scientificName": "Lavandula angustifolia",
+      "category": "Duft- und Heilkräuter",
+      "description": "Duftender Halbstrauch mit violetten Blüten",
+      "growingTips": "Benötigt vollsonnigen Standort und durchlässigen, kalkhaltigen Boden",
+      "harvestTime": "Zur Blütezeit für Duftgewinnung",
+      "uses": ["Aromatherapie", "Potpourri", "Beruhigungstee"]
+    }
+  ],
+  "segments": [],
+  "harvestEvents": [],
+  "harvestContributions": [],
+  "gartenConfiguration": {
+    "gartenName": "Mein Kräutergarten",
+    "standort": "Gurk, Kärnten, Österreich",
+    "groesse": "",
+    "bodentyp": "",
+    "ausrichtung": "",
+    "klimazone": "Gemäßigt kontinental",
+    "bewaesserung": "",
+    "duengung": "",
+    "notizen": "GartenMeister Studio - Vollständige Kräutergarten-Verwaltung mit NAS-Integration"
+  },
+  "lastModified": "2025-07-10T18:20:00.000Z",
+  "version": "1.0.0",
+  "dataSource": "seed-data",
+  "description": "Standard-Datenbestand für neue GartenMeister-Installationen",
+  "seedDataVersion": "1.0.0",
+  "createdAt": "2025-07-10T18:20:00.000Z"
+}

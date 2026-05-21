@@ -1,0 +1,1135 @@
+
+            <!DOCTYPE html>
+            <html lang="de">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>PDF Preview - Gartenübersicht</title>
+                <style>
+                    
+            @page {
+                size: A4 landscape;
+                margin: 15mm;
+            }
+              body {
+                margin: 0;
+                padding: 20px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+                background: white;
+                color: #1a1a1a;
+                font-size: 12px;
+                line-height: 1.4;
+                page-break-after: avoid;
+            }
+            
+            .bed-container {
+                background-color: #f8f9fa;
+                border-radius: 8px;
+                padding: 20px;
+                margin-bottom: 20px;
+                page-break-inside: avoid;
+                page-break-after: avoid;
+            }
+
+            .bed-area {
+                min-height: 170px;
+                padding: 12px;
+                background-color: rgba(241, 245, 249, 0.3);
+                border-radius: 8px;
+                border: 1px solid rgba(0, 0, 0, 0.1);
+                display: flex;
+                flex-direction: row;
+                align-items: stretch;
+                gap: 4px;
+                overflow-x: auto;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            .bed {
+                border: 1px solid rgba(0, 0, 0, 0.3);
+                border-radius: 4px;
+                position: relative;
+                display: flex;
+                flex-direction: column;
+                min-width: 35px;
+                min-height: 150px;
+                max-height: 150px;
+                height: 150px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                overflow: hidden;
+                /* flex-grow wird inline gesetzt basierend auf Beetbreite */
+            }
+
+            .bed-number {
+                font-weight: bold;
+                text-align: center;
+                font-size: 10px;
+                padding: 2px;
+                background: rgba(255,255,255,0.9);
+                border-bottom: 1px solid rgba(0,0,0,0.1);
+                flex-shrink: 0;
+                color: #1f2937;
+                z-index: 10;
+                height: 18px;
+                line-height: 14px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .bed-content {
+                flex-grow: 1;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                height: calc(150px - 18px);
+                min-height: calc(150px - 18px);
+            }
+
+            .segment {
+                /* width und height werden inline gesetzt für proportionale Darstellung */
+                border: 1px solid rgba(255,255,255,0.4);
+                border-radius: 1px;
+                margin: 0.5px 0;
+                box-sizing: border-box;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 9px;
+                color: #1f2937;
+                font-weight: 500;
+                flex-shrink: 0;
+            }
+
+            .segment.empty-space {
+                border: 1px solid rgba(0,0,0,0.1);
+            }
+
+            .segment.empty-bed {
+                color: #666;
+                font-size: 9px;
+                height: 100%;
+                margin: 0;
+            }
+
+            .table-container {
+                margin-top: 30px;
+                page-break-inside: avoid;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 10px;
+                margin-top: 10px;
+            }
+
+            th, td {
+                border: 1px solid #d1d5db;
+                padding: 8px 6px;
+                text-align: left;
+                vertical-align: top;
+            }
+
+            th {
+                background-color: #f3f4f6;
+                font-weight: bold;
+                color: #374151;
+                font-size: 10px;
+            }
+
+            .header {
+                text-align: center;
+                margin-bottom: 30px;
+                page-break-after: avoid;
+            }
+
+            .header h1 {
+                font-size: 20px;
+                color: #1f2937;
+                margin: 0 0 10px 0;
+                font-weight: bold;
+            }
+
+            .header-subtitle {
+                font-size: 12px;
+                color: #6b7280;
+                margin-bottom: 20px;
+            }
+
+            h2 {
+                font-size: 16px;
+                color: #374151;
+                margin: 25px 0 15px 0;
+                font-weight: bold;
+                border-bottom: 2px solid #e5e7eb;
+                padding-bottom: 5px;
+            }
+
+            /* Moderne Tabellen-Styles */
+            .modern-table-container {
+                margin-top: 20px;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            }
+
+            .modern-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 10px;
+                background: white;
+            }
+
+            .modern-header {
+                background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+                border-bottom: 2px solid #d1d5db;
+            }
+
+            .modern-header th {
+                padding: 12px 8px;
+                text-align: left;
+                font-weight: 600;
+                color: #374151;
+                font-size: 10px;
+                border-right: 1px solid #d1d5db;
+            }
+
+            .bed-row {
+                border-bottom: 1px solid #f3f4f6;
+            }
+
+            .bed-row:nth-child(even) {
+                background-color: #fafafa;
+            }
+
+            .bed-row:hover {
+                background-color: #f0f9ff;
+            }
+
+            .empty-bed-row {
+                background-color: #f8f9fa;
+                border-bottom: 1px solid #e9ecef;
+            }
+
+            .bed-info-card {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px;
+            }
+
+            .bed-number-badge {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 24px;
+                height: 24px;
+                border-radius: 4px;
+                color: white;
+                font-weight: bold;
+                font-size: 10px;
+                border: 1px solid rgba(0, 0, 0, 0.2);
+            }
+
+            .bed-number-badge.empty {
+                background-color: #e5e7eb;
+                color: #6b7280;
+            }
+
+            .bed-details {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+            }
+
+            .bed-type {
+                font-weight: 600;
+                color: #374151;
+                font-size: 10px;
+            }
+
+            .bed-meta {
+                font-size: 8px;
+                color: #6b7280;
+            }
+
+            .herb-info {
+                padding: 6px;
+            }
+
+            .herb-name {
+                font-weight: 500;
+                color: #374151;
+                font-size: 10px;
+                margin-bottom: 2px;
+            }
+
+            .herb-meta {
+                font-size: 8px;
+                color: #6b7280;
+            }
+
+            .plants-info {
+                text-align: center;
+                padding: 6px;
+            }
+
+            .plants-current {
+                font-weight: 600;
+                color: #059669;
+                font-size: 11px;
+            }
+
+            .plants-total {
+                font-size: 8px;
+                color: #6b7280;
+            }
+
+            .status-badge {
+                display: inline-block;
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 8px;
+                font-weight: 500;
+                text-align: center;
+            }
+
+            .status-badge.excellent {
+                background-color: #d1fae5;
+                color: #065f46;
+                border: 1px solid #a7f3d0;
+            }
+
+            .status-badge.good {
+                background-color: #dbeafe;
+                color: #1e40af;
+                border: 1px solid #93c5fd;
+            }
+
+            .status-badge.fair {
+                background-color: #fef3c7;
+                color: #92400e;
+                border: 1px solid #fcd34d;
+            }
+
+            .status-badge.poor {
+                background-color: #fee2e2;
+                color: #991b1b;
+                border: 1px solid #fca5a5;
+            }
+
+            .status-badge.inactive {
+                background-color: #f3f4f6;
+                color: #6b7280;
+                border: 1px solid #d1d5db;
+            }
+
+            .status-badge.available {
+                background-color: #ecfdf5;
+                color: #166534;
+                border: 1px solid #bbf7d0;
+            }
+
+            .bed-cell, .dimensions-cell, .herb-cell, .date-cell, .plants-cell, .status-cell {
+                padding: 8px;
+                border-right: 1px solid #f3f4f6;
+                vertical-align: top;
+            }
+        
+                </style>
+            </head>
+            <body>
+                
+            <div class="header">
+                <div class="header-main">
+                    <h1>Gartenübersicht Stiftsgarten Gurk – Bewirtschaftungsjahr 2025</h1>
+                    <div class="header-subtitle">
+                        <div><strong>Aktuelle Ansicht Stand:</strong> 6. Juli 2025</div>
+                        <div><strong>erstellt von:</strong> Dipl.-Ing. Wolfgang Kulmitzer</div>
+                        <div style="font-size: 10px; color: #666; margin-top: 5px;"><em>Generiert mit GartenMeister v2.0 - Gefixte Segmentvisualisierung</em></div>
+                    </div>
+                </div>
+            </div>
+
+            <h2>Beetvisualisierung</h2>
+            
+            <div class="bed-container">
+                <div class="bed-area">
+                    
+            <div class="bed experimental-bed" style="
+                flex-grow: 1.4533333333333334;
+                display: flex;
+                flex-direction: column;
+                border: 1px solid rgba(0, 0, 0, 0.2);
+                border-radius: 3px;
+                overflow: hidden;
+                min-height: 150px;
+                max-height: 150px;
+                height: 150px;
+            ">
+                <div class="bed-number">1</div>
+                <div class="bed-content">
+                    
+                    <div class="segment" style="
+                        width: 100%;
+                        height: 2.3255813953488373%;
+                        min-height: 8px;
+                        background-color: #E6FF2A;
+                        border: 1px solid rgba(255,255,255,0.4);
+                        border-radius: 1px;
+                        margin: 0.5px 0;
+                        box-sizing: border-box;
+                    " title="Segment 1: Zitronengras (1m von 43m)">
+                    </div>
+                
+                    <div class="segment" style="
+                        width: 100%;
+                        height: 2.3255813953488373%;
+                        min-height: 8px;
+                        background-color: #90EE90;
+                        border: 1px solid rgba(255,255,255,0.4);
+                        border-radius: 1px;
+                        margin: 0.5px 0;
+                        box-sizing: border-box;
+                    " title="Segment 2: Schweizer Minze (1m von 43m)">
+                    </div>
+                
+                    <div class="segment" style="
+                        width: 100%;
+                        height: 2.3255813953488373%;
+                        min-height: 8px;
+                        background-color: #00FF7F;
+                        border: 1px solid rgba(255,255,255,0.4);
+                        border-radius: 1px;
+                        margin: 0.5px 0;
+                        box-sizing: border-box;
+                    " title="Segment 3: Zitronenverbene (1m von 43m)">
+                    </div>
+                
+                    <div class="segment empty-space" style="
+                        width: 100%;
+                        height: 93.02325581395348%;
+                        min-height: 8px;
+                        background-color: #6A5ACD;
+                        border: 1px solid rgba(0,0,0,0.1);
+                        border-radius: 1px;
+                        margin: 0.5px 0;
+                        box-sizing: border-box;
+                    " title="Unbelegte Fläche: 40.0m von 43m">
+                    </div>
+                
+                </div>
+            </div>
+        
+            <div class="bed standard-bed" style="
+                flex-grow: 1;
+                background-color: #8FBC8F;
+                border: 1px solid rgba(0, 0, 0, 0.2);
+                border-radius: 3px;
+                display: flex;
+                flex-direction: column;
+                min-height: 150px;
+                max-height: 150px;
+                height: 150px;
+                overflow: hidden;
+            ">
+                <div class="bed-number">2</div>
+                <div class="bed-content" style="
+                    flex-grow: 1;
+                    background-color: #8FBC8F;
+                "></div>
+            </div>
+        
+            <div class="bed standard-bed" style="
+                flex-grow: 1;
+                background-color: #8FBC8F;
+                border: 1px solid rgba(0, 0, 0, 0.2);
+                border-radius: 3px;
+                display: flex;
+                flex-direction: column;
+                min-height: 150px;
+                max-height: 150px;
+                height: 150px;
+                overflow: hidden;
+            ">
+                <div class="bed-number">3</div>
+                <div class="bed-content" style="
+                    flex-grow: 1;
+                    background-color: #8FBC8F;
+                "></div>
+            </div>
+        
+            <div class="bed standard-bed" style="
+                flex-grow: 1.2933333333333334;
+                background-color: #98FB98;
+                border: 1px solid rgba(0, 0, 0, 0.2);
+                border-radius: 3px;
+                display: flex;
+                flex-direction: column;
+                min-height: 150px;
+                max-height: 150px;
+                height: 150px;
+                overflow: hidden;
+            ">
+                <div class="bed-number">4</div>
+                <div class="bed-content" style="
+                    flex-grow: 1;
+                    background-color: #98FB98;
+                "></div>
+            </div>
+        
+            <div class="bed standard-bed" style="
+                flex-grow: 1.2933333333333334;
+                background-color: #98FB98;
+                border: 1px solid rgba(0, 0, 0, 0.2);
+                border-radius: 3px;
+                display: flex;
+                flex-direction: column;
+                min-height: 150px;
+                max-height: 150px;
+                height: 150px;
+                overflow: hidden;
+            ">
+                <div class="bed-number">5</div>
+                <div class="bed-content" style="
+                    flex-grow: 1;
+                    background-color: #98FB98;
+                "></div>
+            </div>
+        
+            <div class="bed standard-bed" style="
+                flex-grow: 1.2133333333333334;
+                background-color: #8FBC8F;
+                border: 1px solid rgba(0, 0, 0, 0.2);
+                border-radius: 3px;
+                display: flex;
+                flex-direction: column;
+                min-height: 150px;
+                max-height: 150px;
+                height: 150px;
+                overflow: hidden;
+            ">
+                <div class="bed-number">6</div>
+                <div class="bed-content" style="
+                    flex-grow: 1;
+                    background-color: #8FBC8F;
+                "></div>
+            </div>
+        
+            <div class="bed standard-bed" style="
+                flex-grow: 1.2133333333333334;
+                background-color: #8FBC8F;
+                border: 1px solid rgba(0, 0, 0, 0.2);
+                border-radius: 3px;
+                display: flex;
+                flex-direction: column;
+                min-height: 150px;
+                max-height: 150px;
+                height: 150px;
+                overflow: hidden;
+            ">
+                <div class="bed-number">7</div>
+                <div class="bed-content" style="
+                    flex-grow: 1;
+                    background-color: #8FBC8F;
+                "></div>
+            </div>
+        
+            <div class="bed standard-bed" style="
+                flex-grow: 1.56;
+                background-color: #C8A2C8;
+                border: 1px solid rgba(0, 0, 0, 0.2);
+                border-radius: 3px;
+                display: flex;
+                flex-direction: column;
+                min-height: 150px;
+                max-height: 150px;
+                height: 150px;
+                overflow: hidden;
+            ">
+                <div class="bed-number">8</div>
+                <div class="bed-content" style="
+                    flex-grow: 1;
+                    background-color: #C8A2C8;
+                "></div>
+            </div>
+        
+            <div class="bed standard-bed" style="
+                flex-grow: 1.0533333333333332;
+                background-color: #556B2F;
+                border: 1px solid rgba(0, 0, 0, 0.2);
+                border-radius: 3px;
+                display: flex;
+                flex-direction: column;
+                min-height: 150px;
+                max-height: 150px;
+                height: 150px;
+                overflow: hidden;
+            ">
+                <div class="bed-number">9</div>
+                <div class="bed-content" style="
+                    flex-grow: 1;
+                    background-color: #556B2F;
+                "></div>
+            </div>
+        
+            <div class="bed standard-bed" style="
+                flex-grow: 1.0533333333333332;
+                background-color: #556B2F;
+                border: 1px solid rgba(0, 0, 0, 0.2);
+                border-radius: 3px;
+                display: flex;
+                flex-direction: column;
+                min-height: 150px;
+                max-height: 150px;
+                height: 150px;
+                overflow: hidden;
+            ">
+                <div class="bed-number">10</div>
+                <div class="bed-content" style="
+                    flex-grow: 1;
+                    background-color: #556B2F;
+                "></div>
+            </div>
+        
+            <div class="bed standard-bed" style="
+                flex-grow: 1.0266666666666666;
+                background-color: #6B8E23;
+                border: 1px solid rgba(0, 0, 0, 0.2);
+                border-radius: 3px;
+                display: flex;
+                flex-direction: column;
+                min-height: 150px;
+                max-height: 150px;
+                height: 150px;
+                overflow: hidden;
+            ">
+                <div class="bed-number">11</div>
+                <div class="bed-content" style="
+                    flex-grow: 1;
+                    background-color: #6B8E23;
+                "></div>
+            </div>
+        
+            <div class="bed standard-bed" style="
+                flex-grow: 1.1066666666666667;
+                background-color: #2E8B57;
+                border: 1px solid rgba(0, 0, 0, 0.2);
+                border-radius: 3px;
+                display: flex;
+                flex-direction: column;
+                min-height: 150px;
+                max-height: 150px;
+                height: 150px;
+                overflow: hidden;
+            ">
+                <div class="bed-number">12</div>
+                <div class="bed-content" style="
+                    flex-grow: 1;
+                    background-color: #2E8B57;
+                "></div>
+            </div>
+        
+            <div class="bed standard-bed" style="
+                flex-grow: 2.7333333333333334;
+                background-color: #C8A2C8;
+                border: 1px solid rgba(0, 0, 0, 0.2);
+                border-radius: 3px;
+                display: flex;
+                flex-direction: column;
+                min-height: 150px;
+                max-height: 150px;
+                height: 150px;
+                overflow: hidden;
+            ">
+                <div class="bed-number">13</div>
+                <div class="bed-content" style="
+                    flex-grow: 1;
+                    background-color: #C8A2C8;
+                "></div>
+            </div>
+        
+            <div class="bed standard-bed" style="
+                flex-grow: 1.0533333333333332;
+                background-color: #556B2F;
+                border: 1px solid rgba(0, 0, 0, 0.2);
+                border-radius: 3px;
+                display: flex;
+                flex-direction: column;
+                min-height: 150px;
+                max-height: 150px;
+                height: 150px;
+                overflow: hidden;
+            ">
+                <div class="bed-number">14</div>
+                <div class="bed-content" style="
+                    flex-grow: 1;
+                    background-color: #556B2F;
+                "></div>
+            </div>
+        
+            <div class="bed standard-bed" style="
+                flex-grow: 1.08;
+                background-color: #2E8B57;
+                border: 1px solid rgba(0, 0, 0, 0.2);
+                border-radius: 3px;
+                display: flex;
+                flex-direction: column;
+                min-height: 150px;
+                max-height: 150px;
+                height: 150px;
+                overflow: hidden;
+            ">
+                <div class="bed-number">15</div>
+                <div class="bed-content" style="
+                    flex-grow: 1;
+                    background-color: #2E8B57;
+                "></div>
+            </div>
+        
+            <div class="bed standard-bed" style="
+                flex-grow: 1.08;
+                background-color: #2E8B57;
+                border: 1px solid rgba(0, 0, 0, 0.2);
+                border-radius: 3px;
+                display: flex;
+                flex-direction: column;
+                min-height: 150px;
+                max-height: 150px;
+                height: 150px;
+                overflow: hidden;
+            ">
+                <div class="bed-number">16</div>
+                <div class="bed-content" style="
+                    flex-grow: 1;
+                    background-color: #2E8B57;
+                "></div>
+            </div>
+        
+            <div class="bed standard-bed" style="
+                flex-grow: 1.08;
+                background-color: #3CB371;
+                border: 1px solid rgba(0, 0, 0, 0.2);
+                border-radius: 3px;
+                display: flex;
+                flex-direction: column;
+                min-height: 150px;
+                max-height: 150px;
+                height: 150px;
+                overflow: hidden;
+            ">
+                <div class="bed-number">17</div>
+                <div class="bed-content" style="
+                    flex-grow: 1;
+                    background-color: #3CB371;
+                "></div>
+            </div>
+        
+            <div class="bed standard-bed" style="
+                flex-grow: 1.0533333333333332;
+                background-color: #8FBC8F;
+                border: 1px solid rgba(0, 0, 0, 0.2);
+                border-radius: 3px;
+                display: flex;
+                flex-direction: column;
+                min-height: 150px;
+                max-height: 150px;
+                height: 150px;
+                overflow: hidden;
+            ">
+                <div class="bed-number">18</div>
+                <div class="bed-content" style="
+                    flex-grow: 1;
+                    background-color: #8FBC8F;
+                "></div>
+            </div>
+        
+            <div class="bed standard-bed" style="
+                flex-grow: 1.0266666666666666;
+                background-color: #98FB98;
+                border: 1px solid rgba(0, 0, 0, 0.2);
+                border-radius: 3px;
+                display: flex;
+                flex-direction: column;
+                min-height: 150px;
+                max-height: 150px;
+                height: 150px;
+                overflow: hidden;
+            ">
+                <div class="bed-number">19</div>
+                <div class="bed-content" style="
+                    flex-grow: 1;
+                    background-color: #98FB98;
+                "></div>
+            </div>
+        
+            <div class="bed standard-bed" style="
+                flex-grow: 8.733333333333334;
+                background-color: #6B8E23;
+                border: 1px solid rgba(0, 0, 0, 0.2);
+                border-radius: 3px;
+                display: flex;
+                flex-direction: column;
+                min-height: 150px;
+                max-height: 150px;
+                height: 150px;
+                overflow: hidden;
+            ">
+                <div class="bed-number">20</div>
+                <div class="bed-content" style="
+                    flex-grow: 1;
+                    background-color: #6B8E23;
+                "></div>
+            </div>
+        
+                </div>
+            </div>
+
+            <h2>Angelegte Beete (Listenansicht)</h2>
+            
+            
+            <table style="width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 5px;">
+                <thead>
+                    <tr style="background-color: hsl(40, 40%, 75%); border-bottom: 2px solid #999;">
+                        <th style="padding: 8px 6px; border: 1px solid #ccc; text-align: left; font-weight: 600; color: #374151; width: 60px;">Nr.</th>
+                        <th style="padding: 8px 6px; border: 1px solid #ccc; text-align: left; font-weight: 600; color: #374151;">Typ</th>
+                        <th style="padding: 8px 6px; border: 1px solid #ccc; text-align: left; font-weight: 600; color: #374151;">Breite</th>
+                        <th style="padding: 8px 6px; border: 1px solid #ccc; text-align: left; font-weight: 600; color: #374151;">
+                            <span style="display: block;">Sorte</span>
+                            <span style="font-size: 8px; font-weight: normal; color: #6b7280;">(Untersorte)</span>
+                        </th>
+                        <th style="padding: 8px 6px; border: 1px solid #ccc; text-align: left; font-weight: 600; color: #374151;">
+                            <span style="display: block;">Pflanz-</span>
+                            <span style="display: block;">datum</span>
+                        </th>
+                        <th style="padding: 8px 6px; border: 1px solid #ccc; text-align: left; font-weight: 600; color: #374151;">Alter</th>
+                        <th style="padding: 8px 6px; border: 1px solid #ccc; text-align: center; font-weight: 600; color: #374151;">
+                            <span style="display: block;">Pflanzen</span>
+                            <span style="display: block;">bei Besatz</span>
+                        </th>
+                        <th style="padding: 8px 6px; border: 1px solid #ccc; text-align: center; font-weight: 600; color: #374151;">
+                            <span style="display: block;">Pflanzen</span>
+                            <span style="display: block;">aktuell</span>
+                        </th>
+                        <th style="padding: 8px 6px; border: 1px solid #ccc; text-align: left; font-weight: 600; color: #374151;">Bemerkungen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                <tr>
+                    <td style="padding: 6px;">
+                        <span style="display: inline-block; width: 12px; height: 12px; background-color: #6A5ACD; border: 1px solid rgba(0,0,0,0.2); border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span>
+                        1
+                    </td>
+                    <td style="padding: 6px;">Versuchsbeet</td>
+                    <td style="padding: 6px;">2.7m</td>
+                    <td style="padding: 6px; max-width: 150px; line-height: 1.3;">Zitronengras 1m<br>Schweizer Minze 1m<br>Zitronenverbene 1m</td>
+                    <td style="padding: 6px;">5.7.2025</td>
+                    <td style="padding: 6px;">1 Tage</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">5<br>2<br>3</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">5 (100%)<br>2 (100%)<br>3 (100%)</td>
+                    <td style="padding: 6px;">Versuchsbeet 6 Laufmeter,mit Zitronengras, Schweizer Minze, Zitronenverbene, Zitronenmelisse
+Gartenbau Wedenig, bio-zertifiziert.
+Restfläche Blühmischung Kärntner Saatbau</td>
+                </tr>
+            
+                <tr>
+                    <td style="padding: 6px;">
+                        <span style="display: inline-block; width: 12px; height: 12px; background-color: #8FBC8F; border: 1px solid rgba(0,0,0,0.2); border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span>
+                        2
+                    </td>
+                    <td style="padding: 6px;">Standard</td>
+                    <td style="padding: 6px;">1m</td>
+                    <td style="padding: 6px; max-width: 150px; line-height: 1.3;">Thymian</td>
+                    <td style="padding: 6px;">4.7.2023</td>
+                    <td style="padding: 6px;">733 Tage</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">1075</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">752 (70%)</td>
+                    <td style="padding: 6px;">Aromapflanzen Görtz</td>
+                </tr>
+            
+                <tr>
+                    <td style="padding: 6px;">
+                        <span style="display: inline-block; width: 12px; height: 12px; background-color: #8FBC8F; border: 1px solid rgba(0,0,0,0.2); border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span>
+                        3
+                    </td>
+                    <td style="padding: 6px;">Standard</td>
+                    <td style="padding: 6px;">1m</td>
+                    <td style="padding: 6px; max-width: 150px; line-height: 1.3;">Thymian</td>
+                    <td style="padding: 6px;">4.7.2023</td>
+                    <td style="padding: 6px;">733 Tage</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">1075</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">913 (85%)</td>
+                    <td style="padding: 6px;">Aromapflanzen Görtz</td>
+                </tr>
+            
+                <tr>
+                    <td style="padding: 6px;">
+                        <span style="display: inline-block; width: 12px; height: 12px; background-color: #98FB98; border: 1px solid rgba(0,0,0,0.2); border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span>
+                        4
+                    </td>
+                    <td style="padding: 6px;">Standard</td>
+                    <td style="padding: 6px;">2.1m</td>
+                    <td style="padding: 6px; max-width: 150px; line-height: 1.3;">Oregano (hot & spicy)</td>
+                    <td style="padding: 6px;">4.5.2025</td>
+                    <td style="padding: 6px;">63 Tage</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">1505</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">1505 (100%)</td>
+                    <td style="padding: 6px;">Aromapflanzen Görtz</td>
+                </tr>
+            
+                <tr>
+                    <td style="padding: 6px;">
+                        <span style="display: inline-block; width: 12px; height: 12px; background-color: #98FB98; border: 1px solid rgba(0,0,0,0.2); border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span>
+                        5
+                    </td>
+                    <td style="padding: 6px;">Standard</td>
+                    <td style="padding: 6px;">2.1m</td>
+                    <td style="padding: 6px; max-width: 150px; line-height: 1.3;">Oregano (hot & spicy)</td>
+                    <td style="padding: 6px;">4.5.2025</td>
+                    <td style="padding: 6px;">63 Tage</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">1548</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">1548 (100%)</td>
+                    <td style="padding: 6px;">Aromapflanzen Görtz</td>
+                </tr>
+            
+                <tr>
+                    <td style="padding: 6px;">
+                        <span style="display: inline-block; width: 12px; height: 12px; background-color: #8FBC8F; border: 1px solid rgba(0,0,0,0.2); border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span>
+                        6
+                    </td>
+                    <td style="padding: 6px;">Standard</td>
+                    <td style="padding: 6px;">1.8m</td>
+                    <td style="padding: 6px; max-width: 150px; line-height: 1.3;">Thymian</td>
+                    <td style="padding: 6px;">4.7.2023</td>
+                    <td style="padding: 6px;">733 Tage</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">1204</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">842 (70%)</td>
+                    <td style="padding: 6px;">Aromapflamzen Görtz</td>
+                </tr>
+            
+                <tr>
+                    <td style="padding: 6px;">
+                        <span style="display: inline-block; width: 12px; height: 12px; background-color: #8FBC8F; border: 1px solid rgba(0,0,0,0.2); border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span>
+                        7
+                    </td>
+                    <td style="padding: 6px;">Standard</td>
+                    <td style="padding: 6px;">1.8m</td>
+                    <td style="padding: 6px; max-width: 150px; line-height: 1.3;">Thymian</td>
+                    <td style="padding: 6px;">4.7.2023</td>
+                    <td style="padding: 6px;">733 Tage</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">1204</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">842 (70%)</td>
+                    <td style="padding: 6px;">Aromapflanzen Görtz</td>
+                </tr>
+            
+                <tr>
+                    <td style="padding: 6px;">
+                        <span style="display: inline-block; width: 12px; height: 12px; background-color: #C8A2C8; border: 1px solid rgba(0,0,0,0.2); border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span>
+                        8
+                    </td>
+                    <td style="padding: 6px;">Blühstreifen</td>
+                    <td style="padding: 6px;">3.1m</td>
+                    <td style="padding: 6px; max-width: 150px; line-height: 1.3;">Blühstreifen</td>
+                    <td style="padding: 6px;">-</td>
+                    <td style="padding: 6px;">-</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">-</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">-</td>
+                    <td style="padding: 6px;">Kärntner Saatbau
+Färberkamille, Kornblume, Ringelblume, Bio-Mischung</td>
+                </tr>
+            
+                <tr>
+                    <td style="padding: 6px;">
+                        <span style="display: inline-block; width: 12px; height: 12px; background-color: #556B2F; border: 1px solid rgba(0,0,0,0.2); border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span>
+                        9
+                    </td>
+                    <td style="padding: 6px;">Standard</td>
+                    <td style="padding: 6px;">1.2m</td>
+                    <td style="padding: 6px; max-width: 150px; line-height: 1.3;">Schokominze</td>
+                    <td style="padding: 6px;">4.5.2025</td>
+                    <td style="padding: 6px;">63 Tage</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">1075</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">1075 (100%)</td>
+                    <td style="padding: 6px;">Aromapflanzen Görtz</td>
+                </tr>
+            
+                <tr>
+                    <td style="padding: 6px;">
+                        <span style="display: inline-block; width: 12px; height: 12px; background-color: #556B2F; border: 1px solid rgba(0,0,0,0.2); border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span>
+                        10
+                    </td>
+                    <td style="padding: 6px;">Standard</td>
+                    <td style="padding: 6px;">1.2m</td>
+                    <td style="padding: 6px; max-width: 150px; line-height: 1.3;">Schokominze</td>
+                    <td style="padding: 6px;">4.5.2025</td>
+                    <td style="padding: 6px;">63 Tage</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">1075</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">1075 (100%)</td>
+                    <td style="padding: 6px;">5 Laufmeter, ca. 30 Pflanzen</td>
+                </tr>
+            
+                <tr>
+                    <td style="padding: 6px;">
+                        <span style="display: inline-block; width: 12px; height: 12px; background-color: #6B8E23; border: 1px solid rgba(0,0,0,0.2); border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span>
+                        11
+                    </td>
+                    <td style="padding: 6px;">Brachfläche</td>
+                    <td style="padding: 6px;">1.1m</td>
+                    <td style="padding: 6px; max-width: 150px; line-height: 1.3;">Brachfläche</td>
+                    <td style="padding: 6px;">-</td>
+                    <td style="padding: 6px;">-</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">-</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">-</td>
+                    <td style="padding: 6px;">-</td>
+                </tr>
+            
+                <tr>
+                    <td style="padding: 6px;">
+                        <span style="display: inline-block; width: 12px; height: 12px; background-color: #2E8B57; border: 1px solid rgba(0,0,0,0.2); border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span>
+                        12
+                    </td>
+                    <td style="padding: 6px;">Standard</td>
+                    <td style="padding: 6px;">1.4m</td>
+                    <td style="padding: 6px; max-width: 150px; line-height: 1.3;">Salbei</td>
+                    <td style="padding: 6px;">4.5.2025</td>
+                    <td style="padding: 6px;">63 Tage</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">1290</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">1161 (90%)</td>
+                    <td style="padding: 6px;">25 Laufmeter Altbestand, Rest 10 Laufmeter neu</td>
+                </tr>
+            
+                <tr>
+                    <td style="padding: 6px;">
+                        <span style="display: inline-block; width: 12px; height: 12px; background-color: #C8A2C8; border: 1px solid rgba(0,0,0,0.2); border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span>
+                        13
+                    </td>
+                    <td style="padding: 6px;">Blühstreifen</td>
+                    <td style="padding: 6px;">7.5m</td>
+                    <td style="padding: 6px; max-width: 150px; line-height: 1.3;">Blühstreifen</td>
+                    <td style="padding: 6px;">-</td>
+                    <td style="padding: 6px;">-</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">-</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">-</td>
+                    <td style="padding: 6px;">Kärntner Saatbau
+Färberkamille, Kornblume, Ringelblume, Bio-Mischung</td>
+                </tr>
+            
+                <tr>
+                    <td style="padding: 6px;">
+                        <span style="display: inline-block; width: 12px; height: 12px; background-color: #556B2F; border: 1px solid rgba(0,0,0,0.2); border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span>
+                        14
+                    </td>
+                    <td style="padding: 6px;">Standard</td>
+                    <td style="padding: 6px;">1.2m</td>
+                    <td style="padding: 6px; max-width: 150px; line-height: 1.3;">Schokominze</td>
+                    <td style="padding: 6px;">4.7.2023</td>
+                    <td style="padding: 6px;">733 Tage</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">1290</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">258 (20%)</td>
+                    <td style="padding: 6px;">Aromapflanzen Görtz</td>
+                </tr>
+            
+                <tr>
+                    <td style="padding: 6px;">
+                        <span style="display: inline-block; width: 12px; height: 12px; background-color: #2E8B57; border: 1px solid rgba(0,0,0,0.2); border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span>
+                        15
+                    </td>
+                    <td style="padding: 6px;">Standard</td>
+                    <td style="padding: 6px;">1.3m</td>
+                    <td style="padding: 6px; max-width: 150px; line-height: 1.3;">Salbei</td>
+                    <td style="padding: 6px;">4.5.2025</td>
+                    <td style="padding: 6px;">63 Tage</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">215</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">215 (100%)</td>
+                    <td style="padding: 6px;">Alt / Neu
+Aromapflanzen Görtz</td>
+                </tr>
+            
+                <tr>
+                    <td style="padding: 6px;">
+                        <span style="display: inline-block; width: 12px; height: 12px; background-color: #2E8B57; border: 1px solid rgba(0,0,0,0.2); border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span>
+                        16
+                    </td>
+                    <td style="padding: 6px;">Standard</td>
+                    <td style="padding: 6px;">1.3m</td>
+                    <td style="padding: 6px; max-width: 150px; line-height: 1.3;">Salbei</td>
+                    <td style="padding: 6px;">4.5.2025</td>
+                    <td style="padding: 6px;">63 Tage</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">1290</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">1290 (100%)</td>
+                    <td style="padding: 6px;">Alt / Neu
+Aromapflanzen Görtz</td>
+                </tr>
+            
+                <tr>
+                    <td style="padding: 6px;">
+                        <span style="display: inline-block; width: 12px; height: 12px; background-color: #3CB371; border: 1px solid rgba(0,0,0,0.2); border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span>
+                        17
+                    </td>
+                    <td style="padding: 6px;">Standard</td>
+                    <td style="padding: 6px;">1.3m</td>
+                    <td style="padding: 6px; max-width: 150px; line-height: 1.3;">Pfefferminze</td>
+                    <td style="padding: 6px;">4.7.2023</td>
+                    <td style="padding: 6px;">733 Tage</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">1290</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">902 (70%)</td>
+                    <td style="padding: 6px;">30 Laufmeter, Rest leer
+Aromapflanzen Görtz</td>
+                </tr>
+            
+                <tr>
+                    <td style="padding: 6px;">
+                        <span style="display: inline-block; width: 12px; height: 12px; background-color: #8FBC8F; border: 1px solid rgba(0,0,0,0.2); border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span>
+                        18
+                    </td>
+                    <td style="padding: 6px;">Standard</td>
+                    <td style="padding: 6px;">1.2m</td>
+                    <td style="padding: 6px; max-width: 150px; line-height: 1.3;">Thymian</td>
+                    <td style="padding: 6px;">4.7.2024</td>
+                    <td style="padding: 6px;">367 Tage</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">1290</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">1225 (95%)</td>
+                    <td style="padding: 6px;">Aromapflanzen Görtz</td>
+                </tr>
+            
+                <tr>
+                    <td style="padding: 6px;">
+                        <span style="display: inline-block; width: 12px; height: 12px; background-color: #98FB98; border: 1px solid rgba(0,0,0,0.2); border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span>
+                        19
+                    </td>
+                    <td style="padding: 6px;">Standard</td>
+                    <td style="padding: 6px;">1.1m</td>
+                    <td style="padding: 6px; max-width: 150px; line-height: 1.3;">Oregano</td>
+                    <td style="padding: 6px;">4.7.2024</td>
+                    <td style="padding: 6px;">367 Tage</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">1290</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">1290 (100%)</td>
+                    <td style="padding: 6px;">-</td>
+                </tr>
+            
+                <tr>
+                    <td style="padding: 6px;">
+                        <span style="display: inline-block; width: 12px; height: 12px; background-color: #6B8E23; border: 1px solid rgba(0,0,0,0.2); border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span>
+                        20
+                    </td>
+                    <td style="padding: 6px;">Brachfläche</td>
+                    <td style="padding: 6px;">30m</td>
+                    <td style="padding: 6px; max-width: 150px; line-height: 1.3;">Brachfläche</td>
+                    <td style="padding: 6px;">-</td>
+                    <td style="padding: 6px;">-</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">-</td>
+                    <td style="padding: 6px; text-align: center; line-height: 1.3;">-</td>
+                    <td style="padding: 6px;">Brachfläche rückwärtiger Teil des Gartens
+ca. 1500 m2</td>
+                </tr>
+            
+                </tbody>
+            </table>
+        
+        
+            </body>
+            </html>
+        

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Über GartenMeister</title>
+  <style>
+    @font-face {
+      font-family: 'EskapadeFraktur';
+      src: url('./app/fonts/EskapadeFraktur-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0E1208;
+      color: #E8EDD8;
+      font-family: -apple-system, 'Segoe UI', sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      user-select: none;
+      -webkit-app-region: drag;
+    }
+
+    .icon {
+      width: 96px;
+      height: 96px;
+      border-radius: 18px;
+      margin-bottom: 18px;
+      -webkit-app-region: no-drag;
+    }
+
+    .wordmark {
+      font-family: 'EskapadeFraktur', serif;
+      font-size: 32px;
+      letter-spacing: 0.02em;
+      margin-bottom: 6px;
+    }
+
+    .wordmark span {
+      color: #9BA97E;
+    }
+
+    .tagline {
+      font-size: 12px;
+      color: #9BA97E;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+
+    .divider {
+      width: 200px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #9BA97E55, transparent);
+      margin-bottom: 20px;
+    }
+
+    .meta {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 24px;
+    }
+
+    .meta-row {
+      display: flex;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .meta-label {
+      color: #6B7A55;
+      min-width: 70px;
+      text-align: right;
+    }
+
+    .meta-value {
+      color: #C5CFAA;
+    }
+
+    .copyright {
+      font-size: 11px;
+      color: #4A5535;
+      margin-bottom: 24px;
+    }
+
+    button {
+      -webkit-app-region: no-drag;
+      background: #9BA97E22;
+      border: 1px solid #9BA97E55;
+      color: #C5CFAA;
+      font-size: 13px;
+      padding: 7px 32px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    button:hover {
+      background: #9BA97E44;
+    }
+  </style>
+</head>
+<body>
+  <img src="./app/GartenMeister-icon-256.png" alt="GartenMeister" class="icon" />
+  <div class="wordmark">Garten<span>Meister</span></div>
+  <div class="tagline">Kräutergarten · Planung · Ernte</div>
+  <div class="divider"></div>
+  <div class="meta">
+    <div class="meta-row"><span class="meta-label">Version</span><span class="meta-value" id="version">—</span></div>
+    <div class="meta-row"><span class="meta-label">Electron</span><span class="meta-value" id="electron">—</span></div>
+    <div class="meta-row"><span class="meta-label">Node.js</span><span class="meta-value" id="node">—</span></div>
+    <div class="meta-row"><span class="meta-label">Chrome</span><span class="meta-value" id="chrome">—</span></div>
+  </div>
+  <div class="copyright" id="copyright">© 2025 Wolfgang Kulmitzer</div>
+  <button onclick="window.close()">Schließen</button>
+
+  <script>
+    // Versions-Info über contextBridge (falls verfügbar) oder IPC
+    if (window.aboutInfo) {
+      document.getElementById('version').textContent  = window.aboutInfo.appVersion  || '—';
+      document.getElementById('electron').textContent = window.aboutInfo.electronVersion || '—';
+      document.getElementById('node').textContent     = window.aboutInfo.nodeVersion   || '—';
+      document.getElementById('chrome').textContent   = window.aboutInfo.chromeVersion || '—';
+      document.getElementById('copyright').textContent = `© ${new Date().getFullYear()} Wolfgang Kulmitzer`;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,354 @@
+# 🌱 GartenMeister Roadmap 2025-2026
+
+## 🎯 **AKTUELLER STATUS (August 2025)**
+✅ **Produktionsreife Windows Desktop App erfolgreich erstellt**
+- **Portable EXE:** `c:\Users\wolfg\Desktop\GartenMeisterStudio\dist\win-unpacked\GartenMeister.exe`
+- Vollständige UI mit Datenspeicherung und API-Integrationen
+- **PDF-Export VOLLSTÄNDIG implementiert** - Beide Typen (Übersicht + Ernten)
+- **IPC-Handler System zu 92% vollständig** (48 von 53 kritischen Handlern)
+- Cloud-Sync und Backup-Funktionen einsatzbereit
+- Multi-Tier Datenspeicher (SQLite + File Storage + Cloud Sync)
+- API-Integrationen: OpenWeatherMap, Meteostat, Google Calendar
+
+## 📋 **AKTUELLER IMPLEMENTATION STATUS (August 2025)**
+### ✅ **VOLLSTÄNDIG IMPLEMENTIERT:**
+1. **PDF-Export System** - Robuste 4-Tier Fallback-Strategie
+   - Gartenübersicht PDF (Beetvisualisierung + Detailtabellen)
+   - Ernteberichte PDF (Jahresstatistiken + Erntedetails)
+   - ASAR-kompatible Module-Loading für portable Apps
+   - 3-stufige Export-Verzeichnis-Erstellung
+2. **IPC-Handler Kern-Funktionalität** (48/53 Handler implementiert)
+   - Alle Datenpersistenz-Handler (beds, harvests, segments, users)
+   - Alle File-System-Handler (read, write, directories)
+   - Alle Config- und App-Management-Handler
+3. **Portable App Stabilität** - Keine kritischen Handler fehlen
+
+### ⚠️ **NOCH FEHLEND (Niedrige Priorität):**
+- **5 Image-Handler** (Galerie-Features, nicht kritisch):
+  - `images:add-comment`, `images:add-rating`
+  - `images:batch-upload`, `images:delete`
+  - `images:get-by-id`, etc.
+
+### 🎯 **NÄCHSTE BUILDS (August 2025)**
+1. **Aktueller Build** - Mit allen PDF-Fixes und 48 IPC-Handlern
+2. **Optional:** Image-Handler nachimplementieren für vollständige Galerie
+
+## 🎯 **AKTUELLE PRIORITÄTEN (Q3/Q4 2025)**
+1. **🖼️ Image-Handler vervollständigen** - Galerie-Funktionalität (5 Handler fehlen noch)
+2. **🎨 Logo & Icon-Design** - Professionelle Markenidentität schaffen
+3. **📋 Impressum & Rechtliches** - Angaben abstimmen und implementieren  
+4. **📚 Hilfe-System ausbauen** - Benutzerfreundlichkeit verbessern
+5. **📊 Dashboard-Widgets überarbeiten** - Parallel zur Hilfe-Entwicklung
+6. **🗄️ NAS-Einstellungen optimieren** - Benutzerfreundlicher gestalten
+
+---
+
+## 🔄 **PHASE 1: FLEXIBLE BEETANZAHL (Priorität: HOCH)**
+
+### **Problem:**
+Derzeit ist die Beetanzahl auf 26 fixiert. Bei variierenden Beetanzahlen (z.B. nur 18 Beete) ist keine flexible Anpassung möglich.
+
+### **Lösung:**
+**Dynamische Beetanzahl-Konfiguration**
+
+#### **1.1 UI-Anpassungen:**
+- ⚙️ **Settings-Tab erweitern**: Eingabefeld für aktuelle Beetanzahl (1-50)
+- 📊 **Visualisierung**: Automatische Grid-Anpassung basierend auf Beetanzahl
+- 📋 **Listenansicht**: Filterung auf verfügbare Beete
+- 🎨 **Responsive Layout**: Optimale Darstellung bei unterschiedlichen Beetanzahlen
+
+#### **1.2 Datenstruktur-Updates:**
+```typescript
+interface GartenConfiguration {
+  currentBeetCount: number;        // Aktuelle Beetanzahl
+  maxBeetCount: number;           // Maximum verfügbare Beete
+  activeBeetIds: string[];        // Liste aktiver Beet-IDs
+  inactiveBeetIds: string[];      // Liste inaktiver Beet-IDs
+}
+```
+
+#### **1.3 PDF-Export-Anpassungen:**
+- 📄 **Dynamisches Layout**: PDF passt sich an aktuelle Beetanzahl an
+- 📊 **Flexible Tabellen**: Nur aktive Beete werden exportiert
+- 🎯 **Zusammenfassung**: Beetanzahl in Header/Footer sichtbar
+
+#### **1.4 Implementierungsschritte:**
+1. `GartenConfiguration` Model erweitern
+2. Settings-UI für Beetanzahl-Management
+3. Visualisierungs-Component für dynamische Layouts
+4. PDF-Generator für variable Beetanzahlen anpassen
+5. Migration für bestehende Daten
+
+**Zeitaufwand: 2-3 Wochen**
+
+---
+
+## 🗺️ **PHASE 2: LAGEPLAN-BASIERTES BEETMANAGEMENT (Priorität: MITTEL)**
+
+### **Vision:**
+Übergang von dynamischer zu (halb)statischer Beetplanung mit visuellem Lageplan
+
+### **Gartenstruktur:**
+```
+┌─────────────────────────────────┐
+│         QUADRANT 1              │
+│  ┌───┐ ┌───┐ ┌───┐ ┌───┐       │
+│  │B1 │ │B2 │ │B3 │ │B4 │       │
+│  └───┘ └───┘ └───┘ └───┘       │
+├─────────────┼───────────────────┤
+│             │   WEG KREUZUNG    │
+├─────────────┼───────────────────┤
+│         QUADRANT 2              │
+│  ┌───┐ ┌───┐ ┌───┐ ┌───┐       │
+│  │B5 │ │B6 │ │B7 │ │B8 │       │
+│  └───┘ └───┘ └───┘ └───┘       │
+└─────────────────────────────────┘
+```
+
+### **2.1 Datenmodell für Lageplan:**
+
+#### **Garten-Definition (JSON):**
+```json
+{
+  "gartenConfig": {
+    "name": "Hauptgarten",
+    "dimensions": {
+      "width": 100,    // Meter
+      "height": 80     // Meter
+    },
+    "layout": {
+      "type": "cross_paths",
+      "pathWidth": 2,
+      "quadrants": 4
+    }
+  },
+  "beete": [
+    {
+      "id": "B1",
+      "quadrant": 1,
+      "position": {"x": 10, "y": 10},
+      "dimensions": {"length": 20, "width": 5},
+      "type": "standard",
+      "rotation": {"currentCycle": 1, "maxCycle": 3}
+    }
+  ]
+}
+```
+
+#### **Beet-Beschreibung (CSV/Excel Import):**
+```csv
+BeetID,Quadrant,Länge,Breite,Position_X,Position_Y,Typ,Rotation_Jahr
+B1,1,20,5,10,10,standard,1
+B2,1,20,5,35,10,blühstreifen,2
+B3,1,20,5,60,10,standard,1
+```
+
+### **2.2 UI-Komponenten:**
+
+#### **Lageplan-Editor:**
+- 🎨 **Drag & Drop Interface**: Beete visuell positionieren
+- 📐 **Maßstab-getreue Darstellung**: Realistische Proportionen
+- 🔄 **Rotations-Planung**: Visuelle Zyklusanzeige
+- 📊 **Quadranten-Management**: Getrennte Bereiche
+
+#### **Beet-Management:**
+- 📝 **Eigenschaften-Panel**: Länge, Breite, Typ bearbeiten
+- 🔄 **Rotations-Planer**: 2-3 Jahres-Zyklen definieren
+- 📋 **Batch-Operations**: Mehrere Beete gleichzeitig bearbeiten
+
+### **2.3 Rotations-Management:**
+```typescript
+interface BeetRotation {
+  beetId: string;
+  cycles: RotationCycle[];
+  currentCycle: number;
+  nextRotationDate: Date;
+}
+
+interface RotationCycle {
+  year: number;
+  type: 'kräuter' | 'blühstreifen' | 'brache';
+  plannedCrops?: string[];
+  duration: number; // Jahre
+}
+```
+
+### **2.4 Migration vs. Neuentwicklung:**
+
+#### **Option A: Fortführung (Empfohlen)**
+- ✅ **Bestehende Daten bleiben erhalten**
+- ✅ **Schrittweise Migration möglich**
+- ✅ **Bewährte Architektur erweitern**
+- ⚠️ **Komplexere Datenstruktur**
+
+#### **Option B: Neuentwicklung**
+- ✅ **Saubere Architektur von Grund auf**
+- ✅ **Optimiert für Lageplan-Features**
+- ⚠️ **Datenverlust bei Migration**
+- ⚠️ **Längere Entwicklungszeit**
+
+**Empfehlung: Option A - Fortführung mit schrittweiser Erweiterung**
+
+**Zeitaufwand: 4-6 Wochen**
+
+---
+
+## 🎨 **PHASE 3: DESIGN, BRANDING & BENUTZERFÜHRUNG (Priorität: HOCH)**
+
+### **3.1 Logo & Iconographie:**
+#### **Hauptlogo für GartenMeister:**
+- 🏰 **Design-Element**: "G" + Domturm-Silhouette
+- 🌱 **Sidebar-Logo**: Kompakte Version für Navigation
+- 📱 **Icon-Design**: Multi-Resolution (16x16 bis 512x512)
+- � **App-Icons**: Konsistente Iconographie für alle Funktionsbereiche
+  - Beete-Verwaltung, Dashboard, Einstellungen, Hilfe, etc.
+- 🪟 **Windows-Icon**: Favicon und EXE-Icon für professionelle Darstellung
+
+#### **3.2 Impressum & Rechtliches:**
+- 📋 **Impressum-Seite**: Vollständige rechtliche Angaben
+  - ⚠️ **Abstimmung erforderlich**: Verantwortliche, Kontaktdaten, Lizenzinformationen
+  - 📧 **Kontakt-Integration**: E-Mail und Support-Kanäle
+  - ⚖️ **Datenschutzerklärung**: Bei Cloud-Features (falls erforderlich)
+- 🔗 **Integration**: In Hilfe-Sektion oder Hauptmenü einbinden
+
+#### **3.3 Hilfe-System & Dokumentation:**
+- � **Strukturiertes Benutzerhandbuch**: 
+  - Schritt-für-Schritt-Anleitungen für alle Hauptfunktionen
+  - Screenshots und Visual Guides
+  - PDF-Export für Offline-Nutzung
+- 🎥 **Tutorial-System**:
+  - Video-Tutorials oder interaktive Walkthroughs
+  - Erste-Schritte-Guide für neue Nutzer
+- ❓ **FAQ-Sektion erweitern**:
+  - Basierend auf User-Feedback und häufigen Problemen
+  - Suchfunktion für schnelle Problemlösung
+- 🆘 **Kontextsensitive Hilfe**:
+  - Hilfe-Buttons in komplexen Dialogen
+  - Tooltips und Erklärungen für wichtige Features
+- 🔧 **Troubleshooting-Guide**:
+  - Häufige Probleme und Lösungsansätze
+  - Systemanforderungen und Kompatibilität
+
+#### **3.4 Integration mit Dashboard & NAS:**
+- 📊 **Dashboard-Widget-System überarbeiten**:
+  - Hilfetexte für neue Widget-Funktionen
+  - Anleitungen für Personalisierung
+- �️ **NAS-Einstellungen verbessern**:
+  - Benutzerfreundliche Setup-Guides
+  - Automatische Konfigurationshilfen
+  - Troubleshooting für Verbindungsprobleme
+
+### **3.5 Farbschema-Optimierung:**
+- � **Kräutersorten**: Grün-Töne (verschiedene Sättigung)
+- 🌸 **Blühstreifen**: Violett/Rosa-Töne
+- � **Brachfläche**: Braun/Beige-Töne
+- 📊 **Konsistente Color-Palette**: CSS Variables
+
+### **3.6 Implementierung:**
+```typescript
+// Brand Colors
+const brandColors = {
+  primary: '#2D5016',      // Dunkelgrün
+  secondary: '#7CB342',    // Hellgrün
+  accent: '#9C27B0',       // Violett (Blüten)
+  neutral: '#8D6E63',      // Braun (Brache)
+  background: '#F1F8E9'    // Sehr helles Grün
+};
+```
+
+### **3.7 Zeitplan für Phase 3:**
+- **Oktober 2025**: Logo und Icon-Design erstellen
+- **November 2025**: Impressum-Inhalte abstimmen und Hilfe-System konzeptionieren
+- **Dezember 2025**: Integration mit Dashboard-Überarbeitung und NAS-Einstellungen
+
+**Zeitaufwand: 3-4 Wochen** (abhängig von Abstimmung der Impressum-Inhalte)
+
+---
+
+## 📸 **PHASE 4: ERWEITERTE FEATURES (Langfristig)**
+
+### **4.1 Foto-Management:**
+- 📱 **Bildupload**: Drag & Drop Interface
+- 🏷️ **Tagging-System**: Automatische Kategorisierung
+- 📊 **Fotopräsentation**: Slideshow für Jahresrückblick
+- 🗓️ **Timeline-View**: Chronologische Darstellung
+
+### **4.2 Historische Daten:**
+- 📈 **Daten-Import**: CSV/Excel für Altdaten
+- 📊 **Trend-Analyse**: Mehrjährige Statistiken
+- 🎯 **Prognose-Tools**: KI-basierte Vorhersagen
+
+### **4.3 Planung & Bewertung:**
+- ✅ **Jahres-Checkliste**: Bewertung der Saison
+- 📅 **Mehr-Jahres-Planung**: 3-5 Jahre im Voraus
+- 📊 **Performance-Metriken**: ROI, Ertrag/m², etc.
+
+**Zeitaufwand: 6-8 Wochen**
+
+---
+
+## 🧪 **TESTING & OPTIMIERUNG (Juli 2025)**
+
+### **Testing-Phasen:**
+1. **Funktionalitäts-Testing:** Alle Features systematisch testen
+2. **Workflow-Testing:** Komplette Arbeitsabläufe durchspielen
+3. **Performance-Testing:** App-Geschwindigkeit und Speicherverbrauch
+4. **Stress-Testing:** Große Datenmengen und Edge-Cases
+
+### **Bekannte Optimierungsbereiche:**
+- Startup-Zeit der portablen EXE
+- PDF-Export bei vielen Beeten
+- Cloud-Sync Performance
+- Memory-Management bei längerer Nutzung
+
+### **Feedback-Collection:**
+- Bug-Reports und Feature-Requests sammeln
+- Workflow-Verbesserungen identifizieren  
+- UI/UX Optimierungen priorisieren
+
+---
+
+## 🛠️ **ENTWICKLUNGSSTRATEGIE**
+
+### **Technische Entscheidungen:**
+1. **Architektur**: Bestehende Electron/Next.js App erweitern
+2. **Datenbank**: SQLite für lokale Daten + Cloud-Sync
+3. **UI-Framework**: React + Tailwind (bereits etabliert)
+4. **3D-Visualisierung**: Three.js oder Canvas für Lageplan
+
+### **Rollout-Plan:**
+1. **Sofort**: Phase 1 (Flexible Beetanzahl) starten ✅ **ABGESCHLOSSEN (August 2025)**
+2. **Q3 2025**: Phase 3 (Design, Branding & Hilfe-System) beginnen 🔄 **AKTUELL**
+   - Logo und Icons erstellen
+   - Impressum-Inhalte abstimmen
+   - Hilfe-System konzeptionieren
+3. **Q4 2025**: Phase 2 (Lageplan-Feature) und Dashboard/NAS-Überarbeitung
+4. **Q1 2026**: Erweiterte Features und finale Integration
+
+### **Aktuelle Prioritäten (August 2025):**
+🔴 **HOCH**: 
+- Logo/Icons für professionelle Darstellung
+- Impressum-Abstimmung (rechtlich erforderlich)
+- Hilfe-System (User Experience)
+
+🟡 **MITTEL**: 
+- Dashboard-Widget-Überarbeitung
+- NAS-Einstellungen-Optimierung
+
+🟢 **NIEDRIG**: 
+- Lageplan-Feature (kann warten bis Design steht)
+
+### **Ressourcen:**
+- **Entwicklungszeit**: ~12-16 Wochen gesamt
+- **Testing**: 2-3 Wochen pro Phase
+- **Dokumentation**: Parallel zur Entwicklung
+
+---
+
+## 🎯 **FAZIT**
+
+**Ja, alle Features sind machbar und sehr spannend!** 🚀
+
+Die geplanten Erweiterungen bauen logisch aufeinander auf und verwandeln GartenMeister von einem einfachen Verwaltungstool zu einer professionellen Garten-Management-Plattform.
+
+**Nächster Schritt**: Nach deinem Testing der aktuellen EXE können wir mit Phase 1 (Flexible Beetanzahl) beginnen!

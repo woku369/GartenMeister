@@ -1,0 +1,38 @@
+{
+  "name": "gartenmeister-weather-service",
+  "version": "1.0.0",
+  "description": "Standalone weather data collection service for GartenMeister - optimized for NAS deployment",
+  "main": "standalone-weather-service.js",
+  "scripts": {
+    "start": "node standalone-weather-service.js start",
+    "test": "node standalone-weather-service.js test",
+    "status": "node standalone-weather-service.js status",
+    "config": "node standalone-weather-service.js config",
+    "setup": "node standalone-weather-service.js config create"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "sharp": "^0.33.0"
+  },
+  "scripts_image_server": {
+    "start-image": "node server-gartenmeister.js"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "keywords": [
+    "weather",
+    "agriculture",
+    "garden",
+    "meteoblue",
+    "openweathermap",
+    "nas",
+    "synology"
+  ],
+  "author": "GartenMeister",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "local"
+  }
+}

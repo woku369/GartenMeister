@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🧪 IPC Live Test</title>
+</head>
+<body>
+    <h1>🔬 IPC vs HTTP Test</h1>
+    <div id="results"></div>
+    
+    <script>
+    async function testPortableAPI() {
+        const resultsDiv = document.getElementById('results');
+        
+        // Test 1: Check Electron context
+        const hasElectron = typeof window !== 'undefined' && window.electronAPI;
+        resultsDiv.innerHTML += `<p>📱 Electron Context: ${hasElectron ? '✅ Available' : '❌ Not found'}</p>`;
+        
+        if (hasElectron) {
+            resultsDiv.innerHTML += `<p>🚀 Available IPC APIs: ${Object.keys(window.electronAPI).join(', ')}</p>`;
+            
+            if (window.electronAPI.beds) {
+                resultsDiv.innerHTML += `<p>🌱 Beds IPC Methods: ${Object.keys(window.electronAPI.beds).join(', ')}</p>`;
+                
+                try {
+                    const beds = await window.electronAPI.beds.getAll();
+                    resultsDiv.innerHTML += `<p>✅ IPC beds.getAll() successful: ${beds?.length || 0} beds found</p>`;
+                    if (beds && beds[0]) {
+                        resultsDiv.innerHTML += `<p>📊 First bed: Beet ${beds[0].bedNumber} (${beds[0].type})</p>`;
+                    }
+                } catch (error) {
+                    resultsDiv.innerHTML += `<p>❌ IPC beds.getAll() failed: ${error.message}</p>`;
+                }
+            }
+        } else {
+            resultsDiv.innerHTML += `<p>🌐 Testing HTTP fallback...</p>`;
+            
+            try {
+                const response = await fetch('/api/beds');
+                const beds = await response.json();
+                resultsDiv.innerHTML += `<p>✅ HTTP /api/beds successful: ${beds?.length || 0} beds found</p>`;
+            } catch (error) {
+                resultsDiv.innerHTML += `<p>❌ HTTP /api/beds failed: ${error.message}</p>`;
+            }
+        }
+    }
+    
+    // Auto-start test
+    testPortableAPI();
+    </script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+[
+  {
+    "id": "1752003873704-ba1c6665.jpg",
+    "originalName": "DSC_0024_test.jpg",
+    "fileName": "1752003873704-ba1c6665.jpg",
+    "filePath": "test-diagnosis\\images\\1752003873704-ba1c6665.jpg",
+    "fileSize": 31,
+    "mimeType": "image/jpeg",
+    "uploadDate": "2025-07-08T19:44:33.735Z",
+    "takenDate": "2025-07-08T19:44:33.700Z",
+    "uploadedBy": "Test-Nutzer",
+    "title": "DSC_0024 Test",
+    "description": "",
+    "tags": [],
+    "bedId": null,
+    "plantType": "",
+    "category": "Allgemein",
+    "location": "",
+    "weather": "",
+    "dimensions": null,
+    "exifData": {
+      "fileName": "DSC_0024_test.jpg",
+      "takenAt": null,
+      "camera": {
+        "make": null,
+        "model": null,
+        "software": null
+      },
+      "lens": null,
+      "settings": {
+        "iso": null,
+        "aperture": null,
+        "shutterSpeed": null,
+        "focalLength": null,
+        "flash": null
+      },
+      "gps": null,
+      "orientation": 1,
+      "dimensions": null,
+      "rawExif": {
+        "DateTime": "2024-07-05T14:30:22"
+      }
+    },
+    "_dateEstimated": true,
+    "_dateSource": "filesystem-dsc-fallback",
+    "isArchived": false,
+    "isFavorite": false,
+    "viewCount": 0,
+    "lastViewed": null,
+    "comments": [],
+    "ratings": []
+  },
+  {
+    "id": "1752003687902-36057a95.jpg",
+    "originalName": "DSC_0024_test.jpg",
+    "fileName": "1752003687902-36057a95.jpg",
+    "filePath": "test-diagnosis\\images\\1752003687902-36057a95.jpg",
+    "fileSize": 31,
+    "mimeType": "image/jpeg",
+    "uploadDate": "2025-07-08T19:41:27.948Z",
+    "takenDate": "2025-07-08T19:41:27.899Z",
+    "uploadedBy": "Test-Nutzer",
+    "title": "DSC_0024 Test",
+    "description": "",
+    "tags": [],
+    "bedId": null,
+    "plantType": "",
+    "category": "Allgemein",
+    "location": "",
+    "weather": "",
+    "dimensions": null,
+    "exifData": {
+      "fileName": "DSC_0024_test.jpg",
+      "takenAt": null,
+      "camera": {
+        "make": null,
+        "model": null,
+        "software": null
+      },
+      "lens": null,
+      "settings": {
+        "iso": null,
+        "aperture": null,
+        "shutterSpeed": null,
+        "focalLength": null,
+        "flash": null
+      },
+      "gps": null,
+      "orientation": 1,
+      "dimensions": null,
+      "rawExif": {
+        "DateTime": "2024-07-05T14:30:22"
+      }
+    },
+    "isArchived": false,
+    "isFavorite": false,
+    "viewCount": 0,
+    "lastViewed": null,
+    "comments": [],
+    "ratings": []
+  }
+]

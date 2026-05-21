@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>GartenMeister</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.openweathermap.org https://*.googleapis.com; img-src 'self' data: https://*.googleusercontent.com;" />
+    <link rel="stylesheet" href="index.css" />
+    <style>
+      body {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        background-color: #E0EEE0;
+        color: #333;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+        padding: 20px;
+        text-align: center;
+      }
+      .logo {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        color: #8FBC8F;
+      }
+      .loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .progress {
+        width: 300px;
+        height: 8px;
+        background-color: #ddd;
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 20px 0;
+      }
+      .progress-bar {
+        height: 100%;
+        background-color: #8FBC8F;
+        width: 0%;
+        transition: width 0.5s ease;
+        animation: progress-animation 2s infinite;
+      }
+      @keyframes progress-animation {
+        0% { width: 10%; }
+        50% { width: 70%; }
+        100% { width: 10%; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="logo">🌿 GartenMeister</div>
+    <h1>Anwendung wird gestartet...</h1>
+    <div class="loading">
+      <div class="progress">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <p>Die Anwendung wird geladen, bitte warten...</p>
+    </div>
+    <script src="loader.js"></script>
+    <script>
+      // Verbesserte Ladelogik mit ipcRenderer-Kommunikation
+      document.addEventListener('DOMContentLoaded', () => {
+        if (window.electronAPI) {
+          console.log('Electron API erkannt, verwende IPC für Navigation');
+        } else {
+          console.log('Keine Electron API erkannt, verwende Standard-Navigation');
+          // Geben wir dem loader.js etwas mehr Zeit
+          setTimeout(() => {
+            try {
+              // Fallback-Navigation für den Fall, dass der loader.js nicht funktioniert
+              window.location.href = window.location.origin + '/app/page';
+            } catch (err) {
+              console.error('Fehler bei der Fallback-Navigation:', err);
+            }
+          }, 3000);
+        }
+      });
+    </script>
+  </body>
+</html>

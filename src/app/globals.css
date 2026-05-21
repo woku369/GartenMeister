@@ -1,0 +1,131 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* PORTABLE EXE VERSION: CSS Font-Face statt next/font */
+@font-face {
+  font-family: 'EskapadeFraktur';
+  src: url('./fonts/EskapadeFraktur-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-eskapade-fraktur {
+  font-family: 'EskapadeFraktur', serif;
+}
+
+@layer base {
+  :root {
+    --background: 48 40% 96%; /* Sehr helles, warmes Pergament-Weiß */
+    --foreground: 220 25% 30%;    /* Dunkles, entsättigtes Tintenblau */
+
+    --card: 48 35% 93%; /* Etwas dunkleres Pergament für Karten */
+    --card-foreground: 220 25% 30%;
+
+    --popover: 48 38% 95%; /* Ähnlich Karte, ggf. heller */
+    --popover-foreground: 220 25% 30%;
+
+    --primary: 80 20% 58%;    /* Gedecktes, leicht gelbliches Grün (verwaschen) */
+    --primary-foreground: 48 40% 97%; /* Sehr helles Creme für Text auf Primärfarbe */
+    --color-garten: #9BA97E; /* CI Brand-Farbe GartenMeister (Alias für --primary) */
+
+    --secondary: 30 25% 62%;  /* Gedeckter, erdiger Terrakotta/Braun-Ton */
+    --secondary-foreground: 48 40% 97%; /* Sehr helles Creme */
+
+    --muted: 48 25% 90%; /* Entsättigte Version des Hintergrunds */
+    --muted-foreground: 220 20% 50%; /* Helleres Tintenblau für weniger wichtigen Text */
+
+    --accent: 40 40% 75%; /* Sanfter Ocker/Beige für Hover/Akzente */
+    --accent-foreground: 220 25% 25%; /* Dunkleres Tintenblau für Text auf Akzent */
+
+    --destructive: 0 40% 55%; /* Entsättigtes, erdiges Rot */
+    --destructive-foreground: 48 40% 97%;
+
+    --border: 220 20% 55%; /* Mittleres Grau-Blau für Ränder, wie verblasste Tinte */
+    --input: 48 30% 92%;  /* Hintergrund für Eingabefelder, ähnlich Karte */
+    --ring: 80 30% 60%;   /* Primärfarbe (oder Akzent) für Fokus-Ringe */
+
+    --chart-1: 80 30% 60%;
+    --chart-2: 30 35% 65%;
+    --chart-3: 210 30% 60%;
+    --chart-4: 40 50% 70%;
+    --chart-5: 60 25% 55%;
+    --radius: 0.5rem;
+
+    /* Sidebar colors */
+    --sidebar-background: 48 30% 91%; /* Etwas dunkleres Pergament für Sidebar */
+    --sidebar-foreground: 220 25% 30%; /* Tintenblau */
+    --sidebar-primary: 80 20% 58%; /* Primärfarbe für aktive Elemente */
+    --sidebar-primary-foreground: 48 40% 97%; /* Helles Creme */
+    --sidebar-accent: 40 40% 75%; /* Ocker/Beige für Hover */
+    --sidebar-accent-foreground: 220 25% 25%; /* Dunkleres Tintenblau */
+    --sidebar-border: 220 20% 60%;
+    --sidebar-ring: 80 30% 60%;
+  }
+
+  .dark {
+    /* Dark Mode im Vintage-Stil: Dunkelblau/Grau-Hintergründe, helle "Kreide"-Vordergründe */
+    --background: 220 15% 15%; /* Sehr dunkles Blau-Grau */
+    --foreground: 48 30% 88%; /* Helles Pergament/Kreide für Text */
+
+    --card: 220 15% 20%;
+    --card-foreground: 48 30% 88%;
+
+    --popover: 220 15% 22%;
+    --popover-foreground: 48 30% 88%;
+
+    --primary: 80 25% 50%;    /* Immer noch gedecktes Grün, aber sichtbar auf Dunkel */
+    --primary-foreground: 48 40% 95%;
+
+    --secondary: 30 30% 55%;  /* Gedecktes Braun, angepasst für Dunkel */
+    --secondary-foreground: 48 40% 95%;
+
+    --muted: 220 15% 28%;
+    --muted-foreground: 48 25% 70%;
+
+    --accent: 40 45% 65%;      /* Ocker, angepasst für Dunkel */
+    --accent-foreground: 220 10% 10%;
+
+    --destructive: 0 45% 50%;
+    --destructive-foreground: 48 30% 90%;
+
+    --border: 220 15% 35%;
+    --input: 220 15% 24%;
+    --ring: 80 35% 55%;
+
+    --chart-1: 80 35% 55%;
+    --chart-2: 30 40% 60%;
+    --chart-3: 210 35% 55%;
+    --chart-4: 40 55% 65%;
+    --chart-5: 60 30% 50%;
+
+    /* Dark Sidebar colors */
+    --sidebar-background: 220 15% 12%; /* Noch dunklerer Hintergrund für Sidebar */
+    --sidebar-foreground: 48 30% 85%;
+    --sidebar-primary: 80 25% 50%;
+    --sidebar-primary-foreground: 48 40% 95%;
+    --sidebar-accent: 40 45% 65%;
+    --sidebar-accent-foreground: 220 10% 10%;
+    --sidebar-border: 220 15% 25%;
+    --sidebar-ring: 80 35% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  
+  /* Klasse für die Eskapade Fraktur Schrift */
+  .font-fraktur {
+    font-family: var(--font-eskapade-fraktur);
+    letter-spacing: 0.02em;
+    font-weight: normal;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+}

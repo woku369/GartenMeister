@@ -1,0 +1,10 @@
+{
+    "recommendations": [],
+    "unwantedRecommendations": [
+        "streetsidesoftware.code-spell-checker",
+        "streetsidesoftware.code-spell-checker-german",
+        "ban.spellright",
+        "adamvoss.vscode-languagetool",
+        "valentjn.vscode-ltex"
+    ]
+}

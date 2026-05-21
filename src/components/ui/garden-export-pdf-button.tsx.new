@@ -1,0 +1,88 @@
+"use client";
+
+import { useState } from "react";
+import { toast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { FileDown, Loader2 } from "lucide-react";
+import { GardenPDFGenerator } from "@/lib/garden-pdf-generator";
+import { HerbVariety, BaseBed, VersuchsbeetSegment } from "@/lib/definitions";
+
+interface GardenExportPDFButtonProps {
+  beds: BaseBed[];
+  segments?: VersuchsbeetSegment[];
+  herbVarieties: HerbVariety[];
+  disabled?: boolean;
+}
+
+interface ExportPDFResponse {
+  success: boolean;
+  message: string;
+}
+
+interface ExportPDFData {
+  pdfBuffer: number[];
+}
+
+export default function GardenExportPDFButton({
+  beds,
+  segments = [],
+  herbVarieties,
+  disabled = false
+}: GardenExportPDFButtonProps) {
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportGardenToPDF = async () => {
+    try {
+      setIsExporting(true);
+
+      // Erstelle eine neue Instanz des PDF-Generators
+      const pdfGenerator = new GardenPDFGenerator({
+        beds,
+        segments,
+        herbVarieties
+      });
+
+      // Generiere das PDF
+      const pdfBuffer = await pdfGenerator.generatePDF();
+
+      // Exportiere über die Electron Bridge
+      const result = await window.electronAPI?.exportPDF({
+        pdfBuffer: Array.from(pdfBuffer)
+      } as ExportPDFData);
+
+      if (!result?.success) {
+        throw new Error(result?.message || 'PDF Export fehlgeschlagen');
+      }
+
+      toast({
+        title: "PDF Export erfolgreich",
+        description: result.message
+      });
+    } catch (error) {
+      console.error('PDF Export Fehler:', error);
+      toast({
+        title: "PDF Export fehlgeschlagen",
+        description: error instanceof Error ? error.message : 'Unbekannter Fehler',
+        variant: "destructive"
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={exportGardenToPDF}
+      disabled={disabled || isExporting}
+    >
+      {isExporting ? (
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+      ) : (
+        <FileDown className="mr-2 h-4 w-4" />
+      )}
+      Als PDF exportieren
+    </Button>
+  );
+}

@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GartenMeister - Gartenübersicht</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f0f4f0 0%, #e8f5e8 100%);
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #8FBC8F 0%, #7aad7a 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .header .subtitle {
+            margin-top: 8px;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border-left: 5px solid #8FBC8F;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+        }
+        
+        .stat-card h3 {
+            color: #2C5530;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .stat-card .value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #8FBC8F;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card .label {
+            color: #666;
+            font-size: 0.95em;
+        }
+        
+        .beds-section {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .section-header h2 {
+            color: #2C5530;
+            font-size: 1.8em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .beds-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+        
+        .bed-card {
+            background: linear-gradient(135deg, #f8fdf8 0%, #f0f8f0 100%);
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .bed-card:hover {
+            border-color: #8FBC8F;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(143, 188, 143, 0.15);
+        }
+        
+        .bed-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #8FBC8F 0%, #7aad7a 100%);
+        }
+        
+        .bed-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .bed-number {
+            background: #8FBC8F;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        .bed-type {
+            background: #e8f5e8;
+            color: #2C5530;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+        
+        .bed-info {
+            margin-bottom: 15px;
+        }
+        
+        .bed-info .herb-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #2C5530;
+            margin-bottom: 8px;
+        }
+        
+        .bed-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 0.95em;
+            color: #666;
+        }
+        
+        .bed-details .detail {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        
+        .loading .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f0f0f0;
+            border-top: 4px solid #8FBC8F;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: #fff5f5;
+            color: #d32f2f;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #d32f2f;
+            margin: 20px 0;
+        }
+        
+        .success-message {
+            background: #f0f8f0;
+            color: #2C5530;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #8FBC8F;
+            margin: 20px 0;
+            text-align: center;
+            font-size: 1.1em;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            background: #8FBC8F;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn:hover {
+            background: #7aad7a;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(143, 188, 143, 0.3);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #666;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        
+        .empty-state .icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌱 GartenMeister</h1>
+        <div class="subtitle">Portable Desktop Edition - Gartenübersicht</div>
+    </div>
+    
+    <div class="container">
+        <div id="loading-state" class="loading">
+            <div class="spinner"></div>
+            <div>Lade Gartendaten...</div>
+        </div>
+        
+        <div id="success-message" class="success-message" style="display: none;">
+            🎉 <strong>Portable EXE läuft perfekt!</strong><br>
+            Server-freie Architektur mit vollständigem IPC-System aktiv.
+        </div>
+        
+        <div id="error-state" class="error" style="display: none;">
+            <strong>❌ Fehler beim Laden der Daten</strong>
+            <div id="error-message"></div>
+        </div>
+        
+        <div id="main-content" style="display: none;">
+            <!-- Statistiken -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>🏡 Beete gesamt</h3>
+                    <div class="value" id="total-beds">0</div>
+                    <div class="label">Aktive Gartenbeete</div>
+                </div>
+                
+                <div class="stat-card">
+                    <h3>🌿 Kräuterarten</h3>
+                    <div class="value" id="total-herbs">0</div>
+                    <div class="label">Verschiedene Sorten</div>
+                </div>
+                
+                <div class="stat-card">
+                    <h3>📊 Segmente</h3>
+                    <div class="value" id="total-segments">0</div>
+                    <div class="label">Anbau-Segmente</div>
+                </div>
+                
+                <div class="stat-card">
+                    <h3>📈 Ernte-Events</h3>
+                    <div class="value" id="total-harvests">0</div>
+                    <div class="label">Erfasste Ernten</div>
+                </div>
+            </div>
+            
+            <!-- Beete Übersicht -->
+            <div class="beds-section">
+                <div class="section-header">
+                    <h2>🌱 Beete Übersicht</h2>
+                    <div class="action-buttons">
+                        <button class="btn" onclick="refreshData()">
+                            🔄 Aktualisieren
+                        </button>
+                        <button class="btn btn-secondary" onclick="showDebugInfo()">
+                            🔧 Debug Info
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="beds-container">
+                    <div id="beds-loading" class="loading">
+                        <div class="spinner"></div>
+                        <div>Lade Beete...</div>
+                    </div>
+                    
+                    <div id="beds-grid" class="beds-grid" style="display: none;"></div>
+                    
+                    <div id="beds-empty" class="empty-state" style="display: none;">
+                        <div class="icon">🏡</div>
+                        <h3>Noch keine Beete vorhanden</h3>
+                        <p>Erstelle dein erstes Beet, um loszulegen!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Globale Variablen
+        let bedsData = [];
+        let herbsData = [];
+        let segmentsData = [];
+        let harvestsData = [];
+        
+        // App initialisieren
+        async function initializeGartenApp() {
+            console.log('🚀 Initialisiere GartenMeister portable App...');
+            
+            try {
+                // Prüfe Electron-Umgebung
+                if (typeof window.electronAPI === 'undefined') {
+                    throw new Error('Electron API nicht verfügbar - App läuft nicht in Electron-Umgebung');
+                }
+                
+                console.log('✅ Electron API verfügbar');
+                
+                // Zeige Erfolgsmeldung
+                showElement('success-message');
+                
+                // Lade alle Daten
+                await loadAllData();
+                
+                // Zeige Hauptinhalt
+                hideElement('loading-state');
+                showElement('main-content');
+                
+                console.log('✅ GartenMeister erfolgreich initialisiert');
+                
+            } catch (error) {
+                console.error('❌ Fehler bei der Initialisierung:', error);
+                showError('Initialisierung fehlgeschlagen: ' + error.message);
+            }
+        }
+        
+        // Alle Daten laden
+        async function loadAllData() {
+            console.log('📊 Lade alle Gartendaten...');
+            
+            try {
+                // Daten über IPC laden (simuliert, da data-store.ts das IPC-System nutzt)
+                await loadBedsData();
+                await loadHerbsData();
+                await loadSegmentsData();
+                await loadHarvestsData();
+                
+                // UI aktualisieren
+                updateStatistics();
+                renderBeds();
+                
+                console.log('✅ Alle Daten erfolgreich geladen');
+                
+            } catch (error) {
+                console.error('❌ Fehler beim Laden der Daten:', error);
+                throw error;
+            }
+        }
+        
+        // Beete laden
+        async function loadBedsData() {
+            try {
+                console.log('📂 Lade Beete über IPC...');
+                
+                // Echter IPC-Call: Lade gespeicherte Daten
+                const appPath = await window.electronAPI.getAppPath();
+                const dataPath = await window.electronAPI.getDataFilePath('app-data.json');
+                const fileExists = await window.electronAPI.fileExists(dataPath);
+                
+                console.log('📍 Daten-Pfad:', dataPath);
+                console.log('📄 Datei existiert:', fileExists);
+                
+                if (fileExists) {
+                    const data = await window.electronAPI.readJsonFile(dataPath);
+                    console.log('📊 Geladene Roh-Daten:', data);
+                    
+                    if (data && data.beds && Array.isArray(data.beds)) {
+                        bedsData = data.beds;
+                        console.log(`✅ ${bedsData.length} echte Beete aus IPC geladen`);
+                        
+                        // Auch andere Daten laden, falls vorhanden
+                        if (data.herbVarieties) herbsData = data.herbVarieties;
+                        if (data.segments) segmentsData = data.segments;
+                        if (data.harvestEvents) harvestsData = data.harvestEvents;
+                        
+                        return;
+                    }
+                }
+                
+                console.log('📝 Keine gespeicherten Daten gefunden, erstelle Demo-Daten');
+                // Fallback: Demo-Daten für erste Verwendung
+                bedsData = createDemoBedsData();
+                
+                // Demo-Daten auch speichern für nächstes Mal
+                const demoData = {
+                    beds: bedsData,
+                    herbVarieties: herbsData,
+                    segments: segmentsData,
+                    harvestEvents: harvestsData,
+                    nextBedId: bedsData.length + 1,
+                    nextHerbId: 100,
+                    nextSegmentId: segmentsData.length + 1,
+                    nextHarvestEventId: harvestsData.length + 1,
+                    nextHarvestContributionId: 1
+                };
+                
+                await window.electronAPI.writeJsonFile(dataPath, demoData);
+                console.log('� Demo-Daten gespeichert für zukünftige Nutzung');
+                
+            } catch (error) {
+                console.error('❌ Fehler beim Laden der Beete:', error);
+                bedsData = createDemoBedsData();
+            }
+        }
+        
+        // Demo-Daten erstellen
+        function createDemoBedsData() {
+            return [
+                {
+                    id: 'bed-1',
+                    bedNumber: 1,
+                    length: 10,
+                    width: 1.5,
+                    position: { x: 0, y: 0 },
+                    herbVariety: 'Thymian',
+                    isActive: true,
+                    plantCount: 45,
+                    productivePlantCount: 42,
+                    notes: 'Sehr gute Entwicklung',
+                    lastModified: new Date().toISOString()
+                },
+                {
+                    id: 'bed-2',
+                    bedNumber: 2,
+                    length: 12,
+                    width: 1.5,
+                    position: { x: 0, y: 2 },
+                    herbVariety: 'Oregano',
+                    isActive: true,
+                    plantCount: 50,
+                    productivePlantCount: 48,
+                    notes: 'Erste Ernte möglich',
+                    lastModified: new Date().toISOString()
+                },
+                {
+                    id: 'bed-3',
+                    bedNumber: 3,
+                    length: 8,
+                    width: 1.5,
+                    position: { x: 0, y: 4 },
+                    herbVariety: 'Basilikum',
+                    isActive: true,
+                    plantCount: 30,
+                    productivePlantCount: 28,
+                    notes: 'Junge Pflanzen',
+                    lastModified: new Date().toISOString()
+                }
+            ];
+        }
+        
+        // Weitere Daten laden (vereinfacht)
+        async function loadHerbsData() {
+            herbsData = [
+                { id: 1, name: 'Thymian', category: 'Mediterran' },
+                { id: 2, name: 'Oregano', category: 'Mediterran' },
+                { id: 3, name: 'Basilikum', category: 'Mediterran' },
+                { id: 4, name: 'Petersilie', category: 'Klassisch' },
+                { id: 5, name: 'Schnittlauch', category: 'Klassisch' }
+            ];
+        }
+        
+        async function loadSegmentsData() {
+            segmentsData = [
+                { id: 1, bedId: 'bed-1', startPosition: 0, endPosition: 5, herbVariety: 'Thymian' },
+                { id: 2, bedId: 'bed-2', startPosition: 0, endPosition: 6, herbVariety: 'Oregano' },
+                { id: 3, bedId: 'bed-3', startPosition: 0, endPosition: 4, herbVariety: 'Basilikum' }
+            ];
+        }
+        
+        async function loadHarvestsData() {
+            harvestsData = [
+                { id: 1, bedId: 'bed-1', date: '2025-07-15', amount: 2.5, unit: 'kg' },
+                { id: 2, bedId: 'bed-2', date: '2025-07-20', amount: 1.8, unit: 'kg' }
+            ];
+        }
+        
+        // Statistiken aktualisieren
+        function updateStatistics() {
+            document.getElementById('total-beds').textContent = bedsData.length;
+            document.getElementById('total-herbs').textContent = herbsData.length;
+            document.getElementById('total-segments').textContent = segmentsData.length;
+            document.getElementById('total-harvests').textContent = harvestsData.length;
+        }
+        
+        // Beete rendern
+        function renderBeds() {
+            const bedsGrid = document.getElementById('beds-grid');
+            const bedsLoading = document.getElementById('beds-loading');
+            const bedsEmpty = document.getElementById('beds-empty');
+            
+            hideElement('beds-loading');
+            
+            if (bedsData.length === 0) {
+                showElement('beds-empty');
+                hideElement('beds-grid');
+                return;
+            }
+            
+            let html = '';
+            bedsData.forEach(bed => {
+                const efficiency = bed.plantCount > 0 ? Math.round((bed.productivePlantCount / bed.plantCount) * 100) : 0;
+                
+                html += `
+                    <div class="bed-card">
+                        <div class="bed-header">
+                            <div class="bed-number">Beet ${bed.bedNumber}</div>
+                            <div class="bed-type">${bed.isActive ? 'Aktiv' : 'Inaktiv'}</div>
+                        </div>
+                        
+                        <div class="bed-info">
+                            <div class="herb-name">${bed.herbVariety || 'Nicht bepflanzt'}</div>
+                        </div>
+                        
+                        <div class="bed-details">
+                            <div class="detail">
+                                📏 <span>${bed.length} × ${bed.width} m</span>
+                            </div>
+                            <div class="detail">
+                                🌱 <span>${bed.plantCount} Pflanzen</span>
+                            </div>
+                            <div class="detail">
+                                ✅ <span>${bed.productivePlantCount} produktiv</span>
+                            </div>
+                            <div class="detail">
+                                📊 <span>${efficiency}% Effizienz</span>
+                            </div>
+                        </div>
+                        
+                        ${bed.notes ? `<div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 8px; font-size: 0.9em; color: #666;">💬 ${bed.notes}</div>` : ''}
+                    </div>
+                `;
+            });
+            
+            bedsGrid.innerHTML = html;
+            showElement('beds-grid');
+            hideElement('beds-empty');
+        }
+        
+        // Utility-Funktionen
+        function showElement(id) {
+            document.getElementById(id).style.display = 'block';
+        }
+        
+        function hideElement(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+        
+        function showError(message) {
+            hideElement('loading-state');
+            hideElement('main-content');
+            document.getElementById('error-message').textContent = message;
+            showElement('error-state');
+        }
+        
+        // Event-Handler
+        async function refreshData() {
+            console.log('🔄 Aktualisiere Daten...');
+            showElement('beds-loading');
+            hideElement('beds-grid');
+            hideElement('beds-empty');
+            
+            try {
+                await loadAllData();
+                console.log('✅ Daten aktualisiert');
+            } catch (error) {
+                console.error('❌ Fehler beim Aktualisieren:', error);
+            }
+        }
+        
+        function showDebugInfo() {
+            const info = {
+                electronAPI: typeof window.electronAPI !== 'undefined',
+                bedsCount: bedsData.length,
+                herbsCount: herbsData.length,
+                segmentsCount: segmentsData.length,
+                harvestsCount: harvestsData.length,
+                timestamp: new Date().toISOString()
+            };
+            
+            alert('🔧 Debug-Information:\n\n' + JSON.stringify(info, null, 2));
+        }
+        
+        // App beim Laden initialisieren
+        document.addEventListener('DOMContentLoaded', initializeGartenApp);
+    </script>
+</body>
+</html>

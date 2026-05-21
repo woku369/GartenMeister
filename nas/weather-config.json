@@ -1,0 +1,40 @@
+{
+  "primaryProvider": "meteoblue",
+  
+  "openweathermap": {
+    "apiKey": "27abc31487d9b25c2721ed313b51b619",
+    "enabled": true
+  },
+  
+  "meteoblue": {
+    "apiKey": "YOUR_METEOBLUE_API_KEY",
+    "enabled": false,
+    "comment": "Trage hier deinen Meteoblue API Key ein und setze enabled auf true"
+  },
+  
+  "location": {
+    "name": "Gurk, Österreich",
+    "lat": 46.8744,
+    "lon": 14.1497,
+    "comment": "Koordinaten für Meteoblue - Name für OpenWeatherMap"
+  },
+  
+  "intervalHours": 2,
+  "minIntervalMinutes": 30,
+  "maxRetries": 3,
+  "retryDelayMs": 5000,
+  
+  "maxDataPoints": 1000,
+  "includeAgriculturalData": true,
+  
+  "dataDirectory": null,
+  "logLevel": "info",
+  
+  "_comments": {
+    "meteoblue_signup": "Registriere dich auf https://www.meteoblue.com/en/weather-api",
+    "meteoblue_pricing": "Kostenloser Plan: 150 calls/Tag - perfekt für alle 2h Sammlung",
+    "meteoblue_packages": "Verwende 'current' und 'agro-day' packages für beste Gartendaten",
+    "synology_paths": "NAS wird automatisch erkannt - oder setze dataDirectory manuell",
+    "coordinates": "Finde genaue Koordinaten auf https://www.latlong.net/"
+  }
+}

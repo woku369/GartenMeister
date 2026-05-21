@@ -1,0 +1,42 @@
+[
+  {
+    "id": "1752004245865-934be7c9.jpg",
+    "originalName": "DSC_0024.jpg",
+    "fileName": "1752004245865-934be7c9.jpg",
+    "filePath": "C:\\Users\\WK\\Desktop\\GartenMeisterStudio\\test-garden-images\\images\\1752004245865-934be7c9.jpg",
+    "fileSize": 22,
+    "mimeType": "image/jpeg",
+    "uploadDate": "2025-07-08T19:50:45.908Z",
+    "takenDate": "2024-01-15T09:30:00.000Z",
+    "uploadedBy": "Test User",
+    "title": "Test DSC Bild",
+    "description": "Test für DSC-Datei ohne EXIF",
+    "tags": [],
+    "bedId": null,
+    "plantType": "",
+    "category": "Test",
+    "location": "",
+    "weather": "",
+    "dimensions": null,
+    "exifData": {
+      "fileName": "DSC_0024.jpg",
+      "takenAt": null,
+      "camera": null,
+      "lens": null,
+      "settings": {},
+      "gps": null,
+      "orientation": 1,
+      "dimensions": null,
+      "rawExif": null,
+      "fallback": true
+    },
+    "_dateEstimated": true,
+    "_dateSource": "filesystem-dsc-fallback",
+    "isArchived": false,
+    "isFavorite": false,
+    "viewCount": 0,
+    "lastViewed": null,
+    "comments": [],
+    "ratings": []
+  }
+]

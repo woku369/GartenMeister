@@ -1,0 +1,16 @@
+{
+  "apiKey": "27abc31487d9b25c2721ed313b51b619",
+  "location": "Gurk, Österreich",
+  "cronSchedule": "0 */2 * * *",
+  "minIntervalMinutes": 30,
+  "dataPath": "/volume1/gartenmeister/data",
+  "weatherDataFile": "weather-data.json",
+  "maxDataPoints": 8760,
+  "enableBackups": true,
+  "backupInterval": 7,
+  "logLevel": "info",
+  "nasMode": true,
+  "nasPath": "/volume1/gartenmeister",
+  "enableLocking": true,
+  "lockTimeout": 10
+}

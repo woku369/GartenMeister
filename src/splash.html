@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GartenMeister</title>
+  <style>
+    @font-face {
+      font-family: 'EskapadeFraktur';
+      src: url('./app/fonts/EskapadeFraktur-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #09100A;
+      color: #E8EDD8;
+      font-family: -apple-system, 'Segoe UI', sans-serif;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      user-select: none;
+      -webkit-app-region: drag;
+    }
+
+    .icon {
+      width: 128px;
+      height: 128px;
+      border-radius: 24px;
+      margin-bottom: 22px;
+      opacity: 0;
+      animation: fadeUp 0.6s ease forwards 0.1s;
+    }
+
+    .wordmark {
+      font-family: 'EskapadeFraktur', serif;
+      font-size: 38px;
+      letter-spacing: 0.03em;
+      opacity: 0;
+      animation: fadeUp 0.6s ease forwards 0.35s;
+    }
+
+    .wordmark span {
+      color: #9BA97E;
+    }
+
+    .progress-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 2px;
+      background: #9BA97E;
+      width: 0%;
+      animation: progress 2.2s ease-in-out forwards 0.5s;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes progress {
+      from { width: 0%; }
+      to   { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <img src="./app/GartenMeister-icon-256.png" alt="GartenMeister" class="icon" />
+  <div class="wordmark">Garten<span>Meister</span></div>
+  <div class="progress-bar"></div>
+</body>
+</html>
